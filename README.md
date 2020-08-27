@@ -1,9 +1,7 @@
 # FaceBlit
-### Real-Time Example-Based Stylization on Mobile Devices
+### Real-Time Example-Based Face Stylization on Mobile Devices
 
-
-Explore state-of-the-art in the field of style transfer based on guided texture synthesis, focus namely on methods which handle human faces [1] and can perform synthesis in real-time [2]. Implement selected method on a mobile device. Find the most suitable approach to detect facial landmarks possibly based on Convolutional Neural Network that would enable creation of semantically meaningful guidance for the synthesis. Implement a mobile application that transfers user specified artistic style to a photo or a video of a human face captured by built-in camera. Try to achieve interactive response on currently available mobile devices and discuss the trade-off between the stylization quality and the stylization speed.
-
+This project deals with an implementation of Android mobile application allowing example-based style transfer from a given style exemplar to a human face captured by a built-in camera. The uniqueness of our application consists in the independence on any online computing resources. The entire process of stylization is computed offline by a mobile device and we seek for as fast as possible response of the application together with faithful reproduction of an artistic style. The mobile application uses an existing face detector for obtaining essential landmarks of a captured face. The project is based on a combination of two papers:
 
 [1] J. Fišer, O. Jamriška, D. Simons, E. Shechtman, J. Lu, P. Asente, M. Lukáč, and D. Sýkora: Example-Based Synthesis of Stylized Facial Animations. ACM Transactions on Graphics 36, 4 (2017). (SIGGRAPH, Los Angeles, USA, July 2017)
 
