@@ -1,0 +1,20 @@
+<resources>
+    <string name="app_name">FaceBlit</string>
+    <string name="capture_button_alt">Capture</string>
+    <string name="switch_camera_button_alt">Switch camera</string>
+    <string name="gallery_button_alt">Gallery</string>
+    <string name="back_button_alt">Back</string>
+    <string name="share_button_alt">Share</string>
+    <string name="share_hint">Share using</string>
+    <string name="capture_mode_camera">Camera</string>
+    <string name="capture_mode_hdr">HDR</string>
+    <string name="capture_mode_night">Night</string>
+    <string name="delete_button_alt">Delete</string>
+    <string name="delete_dialog">Delete current photo?</string>
+    <string name="delete_title">Confirm</string>
+    <string name="face_only">Face only</string>
+    <string name="stylization_scope_button_alt">Switch stylization scope</string>
+    <string name="show_styles_button_alt">Show styles</string>
+    <string name="style_img_view">Style image</string>
+    <string name="stylized_frame_view">Stylized frame view</string>
+</resources>
