@@ -30,7 +30,13 @@ public class MainActivity extends AppCompatActivity implements IRecyclerViewCall
     public static final String KEY_EVENT_EXTRA = "key_event_extra";
     private static final long IMMERSIVE_FLAG_TIMEOUT = 500L;
 
+    // Used to load the 'native-lib' library on application startup.
+    static {
+        System.loadLibrary("native-lib");
+    }
+
     private FrameLayout mContainer;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

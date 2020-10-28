@@ -10,10 +10,9 @@ import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageProxy;
 
-import java.nio.ByteBuffer;
 
-import texler.faceblit.fragments.StyleSelectorFragment;
 import texler.faceblit.utils.BitmapHelper;
+
 
 public class StyleTransferAnalyzer implements ImageAnalysis.Analyzer {
 

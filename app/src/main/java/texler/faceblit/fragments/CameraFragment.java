@@ -290,7 +290,7 @@ public class CameraFragment extends Fragment {
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST) // In this mode, the executor receives the last available frame from the camera at the time that the analyze() method is called. If the method takes longer than the latency of a single frame at the current FPS, some frames might be skipped
                 //.setTargetResolution(STYLE_SIZE)
                 .build();
-        mImageAnalysis.setAnalyzer(mCameraExecutor, new StyleTransferAnalyzer());
+        mImageAnalysis.setAnalyzer(mCameraExecutor, new StyleTransferAnalyzer(mLensFacing));
 
 
         // Must unbind the use-cases before rebinding them
