@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29609.76
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FaceBlit", "FaceBlit.vcxproj", "{3644CFF0-2929-48CC-B9C9-9E8860860A71}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3644CFF0-2929-48CC-B9C9-9E8860860A71}.Debug|x64.ActiveCfg = Debug|x64
+		{3644CFF0-2929-48CC-B9C9-9E8860860A71}.Debug|x64.Build.0 = Debug|x64
+		{3644CFF0-2929-48CC-B9C9-9E8860860A71}.Release|x64.ActiveCfg = Release|x64
+		{3644CFF0-2929-48CC-B9C9-9E8860860A71}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {7192DBCC-3ED8-42C4-9F05-FC6D090BD389}
+	EndGlobalSection
+EndGlobal
