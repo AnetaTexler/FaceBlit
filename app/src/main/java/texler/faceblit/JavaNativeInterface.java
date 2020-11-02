@@ -6,7 +6,7 @@ public class JavaNativeInterface {
      */
     public static native byte[] getStylizedData(String modelPath,
                                                 String styleLandmarks,
-                                                byte[] cube,
+                                                byte[] lookupTableBytes,
                                                 byte[] styleBytes,
                                                 byte[] targetBytes,
                                                 int w,
