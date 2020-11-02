@@ -10,6 +10,13 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        externalNativeBuild {
+            cmake {
+                cppFlags "-frtti -fexceptions -std=c++11"
+                arguments "-DANDROID_STL=c++_shared" // It is needed if OpenCV4 is built with libc++_shared.so, try to build OpenCV4 with this library
+                abiFilters 'x86', 'x86_64', 'armeabi-v7a', 'arm64-v8a'
+            }
+        }
     }
     buildTypes {
         release {
@@ -26,6 +33,10 @@ android {
             path "CMakeLists.txt"
         }
     }
+    packagingOptions {
+        pickFirst '**/*.so' // To suppress error: More than one file was found with OS independent path 'lib/x86_64/libopencv_java4.so'
+    }
+
 }
 
 dependencies {
@@ -65,4 +76,6 @@ dependencies {
 
     // Card View
     implementation "androidx.cardview:cardview:1.0.0"
+
+
 }
