@@ -68,6 +68,7 @@
 #include "../image_saver/save_jpeg.cpp"
 #endif
 
+#define DLIB_NO_GUI_SUPPORT
 #ifndef DLIB_NO_GUI_SUPPORT
 #include "../gui_widgets/fonts.cpp"
 #include "../gui_widgets/widgets.cpp"
