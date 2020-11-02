@@ -10,6 +10,7 @@
 #include <string>
 
 void Log_e(std::string tag, std::string message);
+void Log_i(std::string tag, std::string message);
 
 
 #endif //COMMON_UTILS_1564664221

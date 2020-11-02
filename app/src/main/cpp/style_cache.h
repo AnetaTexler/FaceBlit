@@ -4,7 +4,8 @@
 #include <opencv2/core.hpp>
 #include <vector>
 
-class FacemarkDetector; // Forward Declaration instead of #include FacemarkDetector.h
+//class FacemarkDetector; // Forward Declaration instead of #include FacemarkDetector.h
+class DlibDetector;
 
 
 class StyleCache
@@ -15,7 +16,8 @@ class StyleCache
         cv::Mat stylePosGuide;
         cv::Mat styleAppGuide;
         cv::Mat lookUpCube;
-        FacemarkDetector* facemarkDetector;
+        //FacemarkDetector* facemarkDetector; // from openCV
+        DlibDetector* dlibDetector;
 
     public:
         static StyleCache& getInstance()
