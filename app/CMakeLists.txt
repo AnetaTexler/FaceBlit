@@ -4,6 +4,18 @@
 
 cmake_minimum_required(VERSION 3.4.1)
 
+
+# OpenCV stuff
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/main/jniLibs/opencv-android-4.5.0_include)
+add_library( lib_opencv SHARED IMPORTED )
+set_target_properties(lib_opencv PROPERTIES IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/src/main/jniLibs/${ANDROID_ABI}/libopencv_java4.so)
+
+
+# DLIB stuff
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../dlib-19.21)
+add_library( lib_dlib SHARED ${CMAKE_CURRENT_SOURCE_DIR}/../dlib-19.21/dlib/all/source.cpp)
+
+
 # Specifies a library name, specifies whether the library is STATIC or
 # SHARED, and provides relative paths to the source code. You can
 # define multiple libraries by adding multiple add_library() commands,
@@ -19,6 +31,14 @@ add_library( # Specifies the name of the library.
              # Provides a relative path to your source file(s).
              # Associated headers in the same location as their source file are automatically included.
              src/main/cpp/native-lib.cpp
+             src/main/cpp/style_transfer.cpp
+             src/main/cpp/imgwarp_mls.cpp
+             src/main/cpp/imgwarp_mls_rigid.cpp
+             src/main/cpp/imgwarp_mls_similarity.cpp
+             #src/main/cpp/imgwarp_piecewiseaffine.cpp
+             src/main/cpp/common_utils.cpp
+             #src/main/cpp/facemark_detector.cpp
+             src/main/cpp/dlib_detector.cpp
 
            )
 
@@ -47,7 +67,10 @@ target_link_libraries( # Specifies the target library.
                        native-lib
 
                        # OpenCV lib
-                       #lib_opencv
+                       lib_opencv
+
+                       # DLIB lib
+                       lib_dlib
 
                        # Links the target library to the log library included in the NDK.
                        ${log-lib}
