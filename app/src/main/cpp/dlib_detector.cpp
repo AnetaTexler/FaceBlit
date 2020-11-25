@@ -43,7 +43,7 @@ bool DlibDetector::detectFacemarks(const cv::Mat& image, std::pair<cv::Rect, std
 			for (int i = 0; i < shape.num_parts(); i++)
 				landmarks.push_back(cv::Point2i(shape.part(i).x(), shape.part(i).y()));
 			
-			result = std::pair<cv::Rect, std::vector<cv::Point2i>>(cv::Rect(faces[0].bottom(), faces[0].left(), faces[0].width(), faces[0].height()), landmarks);
+			result = std::pair<cv::Rect, std::vector<cv::Point2i>>(cv::Rect(faces[0].left(), faces[0].top(), faces[0].width(), faces[0].height()), landmarks);
 		}
 		else
 			return false;
