@@ -1,5 +1,6 @@
 #include "time_helper.h"
 #include "window_helper.h"
+#include "cartesian_coordinate_system_helper.h"
 #include "common_utils.h"
 //#include "facemark_detector.h"
 #include "dlib_detector.h"
@@ -15,83 +16,6 @@
 
 
 
-void drawRainbowLandmarks(const cv::Mat& targetImg, const std::vector<cv::Point2i>& targetLandmarks, const std::string shape = "circles", const std::string path = "")
-{
-	double r = 255, g = -25, b = 0;
-	for (int i = 0; i < targetLandmarks.size(); i++)
-	{
-		if (i < 11) // 11x
-		{
-			g += 25;
-			cv::circle(targetImg, targetLandmarks[i], 4, cv::Scalar(0, g, 255), 2); // g = 0, 25, 50, 75, 100, 125, 150, 175, 200, 225, 250
-		}
-
-		if (i >= 11 && i < 21) // 10x
-		{
-			r -= 25;
-			cv::circle(targetImg, targetLandmarks[i], 4, cv::Scalar(0, 255, r), 2); // r = 230, 205, 180, 155, 130, 105, 80, 55, 30, 5
-		}
-
-		if (i >= 21 && i < 31) // 10x
-		{
-			b += 25;
-			cv::circle(targetImg, targetLandmarks[i], 4, cv::Scalar(b, 255, 0), 2); // b = 25, 50, 75, 100, 125, 150, 175, 200, 225, 250 
-		}
-
-		if (i >= 31 && i < 41) // 10x
-		{
-			g -= 25;
-			cv::circle(targetImg, targetLandmarks[i], 4, cv::Scalar(255, g, 0), 2); // g = 230, 205, 180, 155, 130, 105, 80, 55, 30, 5
-		}
-
-		if (i >= 41 && i < 51) // 10x
-		{
-			r += 25;
-			cv::circle(targetImg, targetLandmarks[i], 4, cv::Scalar(255, 0, r), 2); // r = 30, 55, 80, 105, 130, 155, 180, 205, 230, 255
-		}
-
-		if (i >= 51 && i < 61) // 10x
-		{
-			b -= 25;
-			cv::circle(targetImg, targetLandmarks[i], 4, cv::Scalar(b, 0, 255), 2); // b = 225, 200, 175, 150, 125, 100, 75, 50, 25, 0
-		}
-
-		if (i >= 61)
-		{
-			g += 25;
-			cv::circle(targetImg, targetLandmarks[i], 4, cv::Scalar(0, g, 255), 2); // g = 30, 55, 80, 105, 130, 155, 180
-		}
-
-	}
-	if (!path.empty())
-		cv::imwrite(path, targetImg);
-}
-
-void drawLandmarks(const cv::Mat& targetImg, const std::vector<cv::Point2i>& targetLandmarks, const std::string shape = "circles", const cv::Scalar& color = cv::Scalar(0, 255, 0), const std::string path = "")
-{
-	if (shape == "circles")
-	{
-		for (int i = 0; i < targetLandmarks.size(); i++)
-			cv::circle(targetImg, targetLandmarks[i], 4, color, 2);
-	}
-	else if (shape == "lines")
-	{
-		for (int i = 0; i < targetLandmarks.size() - 1; i++)
-		{
-			if (i != 16 && i != 21 && i != 26 && i != 35 && i != 41 && i != 47 && i != 59) // skip lines between indices 16-17, 21-22, 26-27, 35-36, 41-42, 47-48, 59-60
-				cv::line(targetImg, targetLandmarks[i], targetLandmarks[i + 1], color, 2);
-		}
-		// additional lines between indices 30-35, 36-41, 42-47, 48-59, 60-67
-		cv::line(targetImg, targetLandmarks[30], targetLandmarks[35], color, 2);
-		cv::line(targetImg, targetLandmarks[36], targetLandmarks[41], color, 2);
-		cv::line(targetImg, targetLandmarks[42], targetLandmarks[47], color, 2);
-		cv::line(targetImg, targetLandmarks[48], targetLandmarks[59], color, 2);
-		cv::line(targetImg, targetLandmarks[60], targetLandmarks[67], color, 2);
-	}
-	
-	if (!path.empty())
-		cv::imwrite(path, targetImg);
-}
 
 cv::Mat alphaBlendTransparentBG(cv::Mat foreground, cv::Mat alphaMask)
 {
@@ -133,35 +57,6 @@ std::string padLeft(std::string target, int totalWidth, char paddingChar)
 		result.erase(0, result.length() - totalWidth);
 
 	return result;
-}
-
-std::vector<cv::Point2i> recomputePoints180Rotation(const std::vector<cv::Point2i>& points, const cv::Size size)
-{
-	std::vector<cv::Point2i> resultPoints(68);
-	for (int i = 0; i < 68; i++)
-	{
-		if (i >= 0 && i < 17)
-			resultPoints[16 - i] = cv::Point2i(size.width - points[i].x, size.height - points[i].y);
-		else if (i >= 17 && i < 27) // eyebrows
-			resultPoints[43 - i] = cv::Point2i(size.width - points[i].x, size.height - points[i].y);
-		else if (i >= 27 && i < 31) // nose
-			resultPoints[i] = cv::Point2i(size.width - points[i].x, size.height - points[i].y);
-		else if (i >= 31 && i < 36) // nose
-			resultPoints[66 - i] = cv::Point2i(size.width - points[i].x, size.height - points[i].y);
-		else if ((i >= 36 && i < 40) || (i >= 42 && i < 46)) // eyes
-			resultPoints[81 - i] = cv::Point2i(size.width - points[i].x, size.height - points[i].y);
-		else if ((i >= 40 && i < 42) || (i >= 46 && i < 48)) // eyes
-			resultPoints[87 - i] = cv::Point2i(size.width - points[i].x, size.height - points[i].y);
-		else if (i >= 48 && i < 55) // mouth
-			resultPoints[102 - i] = cv::Point2i(size.width - points[i].x, size.height - points[i].y);
-		else if (i >= 55 && i < 60) // mouth
-			resultPoints[114 - i] = cv::Point2i(size.width - points[i].x, size.height - points[i].y);
-		else if (i >= 60 && i < 65) // mouth
-			resultPoints[124 - i] = cv::Point2i(size.width - points[i].x, size.height - points[i].y);
-		else // mouth
-			resultPoints[132 - i] = cv::Point2i(size.width - points[i].x, size.height - points[i].y);
-	}
-	return resultPoints;
 }
 
 bool makeDir(const std::string& path)
@@ -238,17 +133,18 @@ void createInputImages_LVLS2(const cv::Mat& style, cv::Mat& style_base_only, cv:
 
 
 
+
 // ############################################################################
 // #							VIDEO STYLIZATION							  #
 // ############################################################################
-int xxmain()
+int main()
 {
 	// *** PARAMETERS TO SET ***********************************************************************************************************
 	const std::string root = "C:\\Users\\Aneta\\Desktop\\videos";
 	//const std::string root = std::filesystem::current_path().string();
 
 	std::string styleName = "watercolorgirl.png";			// name of a style image from dir root/styles with extension
-	std::string videoName = "target5.mp4";					// name of a target video with extension
+	std::string videoName = "target6.mp4";					// name of a target video with extension
 	const int NNF_patchsize = 3;							// voting patch size (0 for no voting)
 	const bool transparentBG = false;						// choice of background (true = transparent bg, false = target image bg)
 	//const bool frontCamera = true;							// camera facing
@@ -266,6 +162,15 @@ int xxmain()
 	cv::Mat stylePosGuide = getGradient(styleImg.cols, styleImg.rows, false); // G_pos
 	cv::Mat styleAppGuide = getAppGuide(styleImg, true); // G_app
 	std::vector<cv::Point2i> styleLandmarks = getLandmarkPointsFromString(styleLandmarkStr.c_str());
+
+	// Add 3 landmarks on the bottom of the notional circle
+	//int radius = (styleLandmarks[45].x - styleLandmarks[36].x) * 2; // distance of outer eye corners + 80%
+	//styleLandmarks.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(std::vector<cv::Point2i>(styleLandmarks.begin() + 48, styleLandmarks.begin() + 67)), radius, 45.0));
+	//styleLandmarks.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(std::vector<cv::Point2i>(styleLandmarks.begin() + 48, styleLandmarks.begin() + 67)), radius, 90.0));
+	//styleLandmarks.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(std::vector<cv::Point2i>(styleLandmarks.begin() + 48, styleLandmarks.begin() + 67)), radius, 135.0));
+	// Add 2 landmarks into the bottom corners - to prevent the body moving during MLS deformation
+	styleLandmarks.push_back(cv::Point2i(0, styleImg.rows)); // left bottom corner
+	styleLandmarks.push_back(cv::Point2i(styleImg.cols, styleImg.rows)); // right bottom corner
 	
 	// Only for generating inputs for NN
 	//cv::imwrite(root + "\\styles\\" + styleNameNoExtension + "_gpos.png", stylePosGuide);
@@ -289,7 +194,7 @@ int xxmain()
 	// Get the width/height and the FPS of the video
 	int width = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_WIDTH));
 	int height = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_HEIGHT));
-	double FPS = cap.get(cv::CAP_PROP_FPS);
+	double FPS = cap.get(cv::CAP_PROP_FPS) / 2;
 	
 	// Create output directory
 	std::string outputDirPath = root + "\\out_" + videoName.substr(0, videoName.find_last_of(".")) + "\\" + styleNameNoExtension + "_" + std::to_string(NNF_patchsize) + "nnf_" + std::to_string((int)std::ceil(FPS)) + "fps";
@@ -305,7 +210,7 @@ int xxmain()
 	
 	// Load facemark models
 	//FacemarkDetector faceDetector("facemark_models\\lbpcascade_frontalface.xml", 1.1, 3, "facemark_models\\lbf_landmarks.yaml");
-	//DlibDetector faceDetector("facemark_models\\shape_predictor_68_face_landmarks.dat");
+	DlibDetector faceDetector("facemark_models\\shape_predictor_68_face_landmarks.dat");
 	std::pair<cv::Rect, std::vector<cv::Point2i>> faceDetResult; // face and its landmarks
 	std::vector<cv::Point2i> targetLandmarks;
 
@@ -320,11 +225,11 @@ int xxmain()
 			break;
 		}
 
-		//if (i % 2 == 1) // skip odd frames (not in case of target12!!!)
-		//{
-		//	i++; 
-		//	continue;
-		//}  
+		if (i % 2 == 1) // skip odd frames when we want the half FPS (not in case of target12!!!)
+		{
+			i++; 
+			continue;
+		}  
 		/*
 		frame = frame(cv::Rect(240, 0, width - 480, height)); // crop to fit 4:3 ratio
 		cv::resize(frame, frame, cv::Size(styleImg.rows, styleImg.cols)); // resize to fit style size
@@ -348,9 +253,11 @@ int xxmain()
 
 		targetLandmarks = faceDetResult.second;
 
-		if (targetLandmarks[1].y - targetLandmarks[0].y < 30) continue;
+		if (targetLandmarks[1].y - targetLandmarks[0].y < 30) continue;	
 		*/
+
 		
+		/*
 		std::string lmPath = root + "\\landmarks\\" + videoName.substr(0, videoName.find_last_of(".")) + "\\" + padLeft(std::to_string(i), 4, '0') + ".txt";
 		std::ifstream targetLandmarkFile(lmPath);
 		if (targetLandmarkFile.fail()) {
@@ -361,6 +268,21 @@ int xxmain()
 		std::string targetLandmarkStr((std::istreambuf_iterator<char>(targetLandmarkFile)), std::istreambuf_iterator<char>());
 		targetLandmarkFile.close();
 		targetLandmarks = getLandmarkPointsFromString(targetLandmarkStr.c_str());
+		*/
+		faceDetector.detectFacemarks(frame, faceDetResult);
+		targetLandmarks = faceDetResult.second;
+
+		alignTargetToStyle(frame, targetLandmarks, styleLandmarks);
+		//Window::imgShow("frame", frame);
+		
+		// Add 3 landmarks on the bottom of the notional circle
+		//radius = (targetLandmarks[45].x - targetLandmarks[36].x) * 2; // distance of outer eye corners + 80%
+		//targetLandmarks.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(std::vector<cv::Point2i>(targetLandmarks.begin() + 48, targetLandmarks.begin() + 67)), radius, 45.0));
+		//targetLandmarks.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(std::vector<cv::Point2i>(targetLandmarks.begin() + 48, targetLandmarks.begin() + 67)), radius, 90.0));
+		//targetLandmarks.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(std::vector<cv::Point2i>(targetLandmarks.begin() + 48, targetLandmarks.begin() + 67)), radius, 135.0));
+		// Add 2 landmarks into the bottom corners - to prevent the body moving during MLS deformation
+		targetLandmarks.push_back(cv::Point2i(0, frame.rows)); // left bottom corner
+		targetLandmarks.push_back(cv::Point2i(frame.cols, frame.rows)); // right bottom corner
 
 		cv::Mat faceMask = getSkinMask(frame, targetLandmarks);
 		
@@ -370,9 +292,12 @@ int xxmain()
 		targetAppGuide = grayHistMatching(targetAppGuide, styleAppGuide);
 
 		// StyleBlit
-		cv::Mat stylizedImg;
+		cv::Mat stylizedImg, stylizedImgNoApp;
 		if (NNF_patchsize > 0)
+		{
 			stylizedImg = styleBlit_voting(stylePosGuide, targetPosGuide, styleAppGuide, targetAppGuide, lookUpCube, styleImg, cv::Rect2i(0, 0, frame.cols, frame.rows), NNF_patchsize);
+			stylizedImgNoApp = styleBlit_voting(stylePosGuide, targetPosGuide, cv::Mat(), cv::Mat(), lookUpCube, styleImg, cv::Rect2i(0, 0, frame.cols, frame.rows), NNF_patchsize, 20, 10, 0);
+		}
 		else
 			stylizedImg = styleBlit(stylePosGuide, targetPosGuide, styleAppGuide, targetAppGuide, lookUpCube, styleImg, cv::Rect2i(0, 0, frame.cols, frame.rows));
 
@@ -381,8 +306,12 @@ int xxmain()
 		if (transparentBG)
 			alphaBlendResult = alphaBlendTransparentBG(stylizedImg, faceMask);
 		else
-			alphaBlendResult = alphaBlendFG_BG(stylizedImg, frame, faceMask, 25.0);
+			//alphaBlendResult = alphaBlendFG_BG(stylizedImg, frame, faceMask, 25.0);
+			alphaBlendResult = alphaBlendFG_BG(stylizedImg, stylizedImgNoApp, faceMask, 25.0);
 
+		//cv::circle(alphaBlendResult, targetLandmarks[30], radius, cv::Scalar(0, 255, 0), 3);
+		//CartesianCoordinateSystem::drawLandmarks(alphaBlendResult, targetLandmarks);
+		//cv::circle(alphaBlendResult, getAveragePoint(std::vector<cv::Point2i>(targetLandmarks.begin() + 48, targetLandmarks.begin() + 67)), 5, cv::Scalar(0, 0, 255), 3); // circle center
 		// Save frame to video
 		out << alphaBlendResult;
 
@@ -472,7 +401,7 @@ int xxmain()
 
 		if (targetLandmarks[1].y - targetLandmarks[0].y < 30) continue; // skip bad detections
 
-		drawRainbowLandmarks(frame, targetLandmarks);
+		CartesianCoordinateSystem::drawRainbowLandmarks(frame, targetLandmarks);
 		//cv::imwrite(outputDirPath + "\\frames\\" + std::to_string(i) + ".png", frame);
 		out << frame;
 		i++;
@@ -523,13 +452,13 @@ int xxmain()
 		targetLandmarkFile.close();
 		targetLandmarks = getLandmarkPointsFromString(targetLandmarkStr.c_str());
 
-		//targetLandmarks = recomputePoints180Rotation(targetLandmarks, cv::Size(frame.cols, frame.rows));
+		//targetLandmarks = CartesianCoordinateSystem::recomputePoints180Rotation(targetLandmarks, cv::Size(frame.cols, frame.rows));
 		//std::ofstream outFile(lmPath);
 		//for (cv::Point2i point : targetLandmarks)
 		//	outFile << point.x << " " << point.y << std::endl;
 		//outFile.close();
 		
-		//drawRainbowLandmarks(frame, targetLandmarks);
+		//CartesianCoordinateSystem::drawRainbowLandmarks(frame, targetLandmarks);
 		//Window::imgShow("lm", frame);
 
 		
@@ -580,90 +509,6 @@ int xxmain()
 // #				STYLIZE A SET OF IMAGES IN A DIRECTORY					  #
 // ############################################################################
 
-std::vector<cv::Point> getContourPoints(cv::Mat& image, bool drawPoints = false)
-{
-	cv::Mat imageCopy = image.clone();
-	cv::cvtColor(image, imageCopy, cv::COLOR_BGR2GRAY);
-	std::vector<std::vector<cv::Point>> contours;
-	cv::findContours(imageCopy, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE, Point(0, 0));
-	std::sort(contours.begin(), contours.end(), [](const vector<Point>& c1, const vector<Point>& c2) { // find the biggest contour (descending sort - the biggest is contours[0]) 
-		return contourArea(c1, false) > contourArea(c2, false);
-	});
-	//cv::drawContours(hairMask, contours, -1, cv::Scalar(0, 255, 0), 3);
-	if (drawPoints)
-	{
-		for (int i = 0; i < contours[0].size(); i += 20)
-			cv::circle(image, contours[0][i], 4, cv::Scalar(0, 255, 0), 2);
-
-		Window::imgShow("image", image);
-	}
-
-	return contours[0];
-}
-
-float euclideanDistance(const cv::Point p1, const cv::Point p2)
-{
-	return sqrt(pow(p1.x - p2.x, 2) + pow(p1.y - p2.y, 2));
-}
-
-std::vector<std::pair<cv::Point, float>> getDistancesOfEachPointFromOrigin(const std::vector<cv::Point>& points)
-{
-	float cumDistance = 0;
-	std::vector<std::pair<cv::Point, float>> result;
-
-	for (int i = 0; i < points.size(); i++)
-	{
-		result.push_back(std::pair<cv::Point, float>(points[i], cumDistance));
-		if (i + 1 < points.size())
-			cumDistance += euclideanDistance(points[i], points[i + 1]);
-	}
-
-	return result;
-}
-
-cv::Point interpolate(const cv::Point& A, const cv::Point& B, const float& distBI)
-{
-	float distAB = euclideanDistance(A, B); // distance between the current point A and the next point B)
-	float distAI = distAB - distBI; // distance between the A and the new point I, that will be interpolated between A and B
-	int xI, yI;
-
-	if (B.x > A.x)
-		xI = floor(A.x + (distAI / distAB) * (B.x - A.x));
-	else
-		xI = ceil(B.x + (distBI / distAB) * (A.x - B.x));
-
-	if (B.y > A.y)
-		yI = floor(A.y + (distAI / distAB) * (B.y - A.y));
-	else
-		yI = ceil(B.y + (distBI / distAB) * (A.y - B.y));
-
-	return cv::Point(xI, yI);
-}
-
-std::vector<cv::Point> getContourPointsSubset(std::vector<cv::Point>& points, const int subsetSize, const cv::Mat& image)
-{
-	points.push_back(points[0]);
-	std::vector<std::pair<cv::Point, float>> pointsAndDistancesFromOrigin = getDistancesOfEachPointFromOrigin(points);
-	std::vector<cv::Point> newPoints;
-	float distanceBetweenNewPoints = pointsAndDistancesFromOrigin[pointsAndDistancesFromOrigin.size() - 1].second / subsetSize;
-	float currDistance;
-	std::pair<cv::Point, float> oldA = pointsAndDistancesFromOrigin[0];
-	std::pair<cv::Point, float> oldB = pointsAndDistancesFromOrigin[1];
-	int oldIndex = 0;
-
-	for (int i = 0; i < subsetSize; i++)
-	{
-		currDistance = distanceBetweenNewPoints * i;
-		while (currDistance < oldA.second || currDistance > oldB.second) // currDistance is not between points A, B -> shift A, B
-		{
-			oldA = pointsAndDistancesFromOrigin[++oldIndex];
-			oldB = pointsAndDistancesFromOrigin[oldIndex + 1];
-		}
-		newPoints.push_back(interpolate(oldA.first, oldB.first, oldB.second - currDistance));
-	}
-	
-	return newPoints;
-}
 
 int xxxmain()
 {
@@ -693,8 +538,8 @@ int xxxmain()
 	// -----------------------------------------------------------------------
 	std::vector<cv::Point2i> styleFaceLandmarks = getLandmarkPointsFromString(styleLandmarkStr.c_str());
 	std::vector<cv::Point2i> styleHairContourPoints, styleHairLandmarks;
-	styleHairContourPoints = getContourPoints(styleHairMask);
-	styleHairLandmarks = getContourPointsSubset(styleHairContourPoints, 50, styleImg);
+	styleHairContourPoints = CartesianCoordinateSystem::getContourPoints(styleHairMask);
+	styleHairLandmarks = CartesianCoordinateSystem::getContourPointsSubset(styleHairContourPoints, 50, styleImg);
 	
 	//for (int i = 0; i < styleHairLandmarks.size(); i++)
 	//	cv::circle(styleHairMask, styleHairLandmarks[i], 5, cv::Scalar(0, 255, 0), 2);
@@ -757,14 +602,14 @@ int xxxmain()
 				// -----------------------------------------------------------------------
 				std::vector<cv::Point2i> targetFaceLandmarks = getLandmarkPointsFromString(targetLandmarkStr.c_str());
 				std::vector<cv::Point2i> targetHairContourPoints, targetHairLandmarks;
-				targetHairContourPoints = getContourPoints(targetHairMask);
-				targetHairLandmarks = getContourPointsSubset(targetHairContourPoints, 50, targetImg);
+				targetHairContourPoints = CartesianCoordinateSystem::getContourPoints(targetHairMask);
+				targetHairLandmarks = CartesianCoordinateSystem::getContourPointsSubset(targetHairContourPoints, 50, targetImg);
 				//for (int i = 0; i < targetHairLandmarks.size(); i++)
 				//	cv::circle(targetHairMask, targetHairLandmarks[i], 5, cv::Scalar(0, 255, 0), 2);
 				//Window::imgShow("thm", targetHairMask);
-				//drawRainbowLandmarks(styleHairMask, styleHairLandmarks);
+				//CartesianCoordinateSystem::drawRainbowLandmarks(styleHairMask, styleHairLandmarks);
 				//Window::imgShow("shm", styleHairMask);
-				//drawRainbowLandmarks(targetHairMask, targetHairLandmarks);
+				//CartesianCoordinateSystem::drawRainbowLandmarks(targetHairMask, targetHairLandmarks);
 				//Window::imgShow("thm", targetHairMask);
 
 				if (styleHairLandmarks.size() != targetHairLandmarks.size())
@@ -788,8 +633,8 @@ int xxxmain()
 				//cv::imwrite(root + "\\" + outputDirName + "\\" + entryJ.path().filename().string() + "\\skin_mask.png", faceMask);
 				//Window::imgShow("faceMask", faceMask);
 
-				//drawRainbowLandmarks(targetImg, targetLandmarks, entryJ.path().string() + "\\!lm.png"); // TODO: copy target first!!
-				//drawRainbowLandmarks(styleImg, styleLandmarks, root + "\\styles\\" + styleName + "_lm.png");
+				//CartesianCoordinateSystem::drawRainbowLandmarks(targetImg, targetLandmarks, entryJ.path().string() + "\\!lm.png"); // TODO: copy target first!!
+				//CartesianCoordinateSystem::drawRainbowLandmarks(styleImg, styleLandmarks, root + "\\styles\\" + styleName + "_lm.png");
 
 				// Generate guidance channels
 				cv::Mat stylePosGuide = getGradient(targetImg.cols, targetImg.rows, false); // G_pos
@@ -807,7 +652,7 @@ int xxxmain()
 				//cv::imwrite(root + "\\" + outputDirName + "\\" + entryJ.path().filename().string() + "\\base.png", targetBase);
 				//cv::imwrite(root + "\\" + outputDirName + "\\" + entryJ.path().filename().string() + "\\detail.png", targetDetail);
 
-				//cv::Mat lookUpCube = GetLookUpCube(stylePosGuide, styleAppGuide); // 3D table that maps Pos_Red, Pos_Green, App values to coordinates u, v in style
+				//cv::Mat lookUpCube = getLookUpCube(stylePosGuide, styleAppGuide); // 3D table that maps Pos_Red, Pos_Green, App values to coordinates u, v in style
 				//saveLookUpCube(lookUpCube, root + "\\styles\\" + styleName + "_lut.bytes");
 
 				
@@ -876,7 +721,7 @@ int xxxmain()
 // ############################################################################
 // #							SINGLE IMAGE TEST							  #
 // ############################################################################
-int main()
+int xxmain()
 {
 	// *** PARAMETERS TO SET ***********************************************************************************************************
 	//const std::string root = "C:\\Users\\Aneta\\Desktop\\faces_test_subset";
@@ -884,7 +729,7 @@ int main()
 	std::string rawPath = "..\\app\\src\\main\\res\\raw\\";
 	std::string drawablePath = "..\\app\\src\\main\\res\\drawable\\";
 
-	const std::string styleName = "style_watercolorgirl.png";		// name of a style PNG from drawablePath
+	const std::string styleName = "style_het.png";		// name of a style PNG from drawablePath
 	const std::string targetName = "target1.png";				// name of a target PNG
 	const bool loadTargetLandmarks = false;						// true = landmarks are loaded from file "lm_<targetName>.txt", false = DLIB detector is called 
 	const int NNF_patchsize = 3;								// voting patch size (0 for no voting)
@@ -925,7 +770,7 @@ int main()
 		dlibDetector.detectFacemarks(targetImg, detectionResult);
 		std::cout << "Landmarks detection time: " << t_detection.elapsed_milliseconds() << " ms" << std::endl;
 		targetLandmarks = detectionResult.second;
-		//drawLandmarks(targetImg, targetLandmarks);
+		//CartesianCoordinateSystem::drawLandmarks(targetImg, targetLandmarks);
 		//cv::imwrite("TESTS\\lm.png", targetImg);
 	}
 	
@@ -959,24 +804,30 @@ int main()
 	//saveLookUpCube(lookUpCube, rawPath + "lut_watercolorgirl.bytes");
 
 	TimeMeasure t_styleBlit;
-	cv::Mat stylizedImg;
+	cv::Mat stylizedImg, stylizedImgNoApp;
 	if (NNF_patchsize > 0)
+	{
 		stylizedImg = styleBlit_voting(stylePosGuide, targetPosGuide, styleAppGuide, targetAppGuide, lookUpCube, styleImg, cv::Rect2i(0, 0, targetImg.cols, targetImg.rows), NNF_patchsize);
+		stylizedImgNoApp = styleBlit_voting(stylePosGuide, targetPosGuide, cv::Mat(), cv::Mat(), lookUpCube, styleImg, cv::Rect2i(0, 0, targetImg.cols, targetImg.rows), NNF_patchsize, 20, 10, 0);
+	}
 	else
 		stylizedImg = styleBlit(stylePosGuide, targetPosGuide, styleAppGuide, targetAppGuide, lookUpCube, styleImg, cv::Rect2i(0, 0, targetImg.cols, targetImg.rows));
 	
 	std::cout << "StyleBlit time: " << t_styleBlit.elapsed_milliseconds() << " ms" << std::endl;
 
 	//Window::imgShow("Result", stylizedImg);
+	//Window::imgShow("ResultNoApp", stylizedImgNoApp);
+	//cv::waitKey(0);
 
 	TimeMeasure timer;
 	cv::Mat faceMask = getSkinMask(targetImg, targetLandmarks);
 	std::cout << "GetFaceMask: " << timer.elapsed_milliseconds() << " ms" << std::endl;
 	timer.reset();
-	cv::Mat alphaBlendResult = alphaBlendFG_BG(stylizedImg, targetImg, faceMask, 25.0f);
+	//cv::Mat alphaBlendResult = alphaBlendFG_BG(stylizedImg, targetImg, faceMask, 25.0f);
+	cv::Mat alphaBlendResult = alphaBlendFG_BG(stylizedImg, stylizedImgNoApp, faceMask, 25.0f);
 	std::cout << "AlphaBlend: " << timer.elapsed_milliseconds() << " ms" << std::endl;
 
-	//Window::imgShow("alphaBlend", alphaBlendResult);
+	Window::imgShow("alphaBlend", alphaBlendResult);
 
 	cv::imwrite("TESTS\\" + outputName, alphaBlendResult);
 	

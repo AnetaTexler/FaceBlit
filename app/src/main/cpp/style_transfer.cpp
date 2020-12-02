@@ -9,6 +9,7 @@
 #include <opencv2/core.hpp>
 #include "time_helper.h"
 #include "window_helper.h"
+#include "cartesian_coordinate_system_helper.h"
 #include "common_utils.h"
 #include "style_cache.h"
 //#include <opencv2/face.hpp>
@@ -168,6 +169,55 @@ std::vector<cv::Point2i> getLandmarkPointsFromString(const char* landmarks)
 		points.push_back(cv::Point2i(x, y));
 	
 	return points;
+}
+
+
+// scale and translate a target to be aligned with a style (targetImg and targetLandmarks are modified)
+void alignTargetToStyle(cv::Mat& targetImg, std::vector<cv::Point2i>& targetLandmarks, const std::vector<cv::Point2i>& styleLandmarks)
+{
+	cv::Point2i targetLeftEye = CartesianCoordinateSystem::getAveragePoint(std::vector<cv::Point2i>(targetLandmarks.begin() + 36, targetLandmarks.begin() + 41)); // left eye center
+	cv::Point2i targetRightEye = CartesianCoordinateSystem::getAveragePoint(std::vector<cv::Point2i>(targetLandmarks.begin() + 42, targetLandmarks.begin() + 47)); // right eye center
+	float targetEyesDist = CartesianCoordinateSystem::euclideanDistance(targetLeftEye, targetRightEye);
+	
+	cv::Point2i styleLeftEye = CartesianCoordinateSystem::getAveragePoint(std::vector<cv::Point2i>(styleLandmarks.begin() + 36, styleLandmarks.begin() + 41));
+	cv::Point2i styleRightEye = CartesianCoordinateSystem::getAveragePoint(std::vector<cv::Point2i>(styleLandmarks.begin() + 42, styleLandmarks.begin() + 47));
+	float styleEyesDist = CartesianCoordinateSystem::euclideanDistance(styleLeftEye, styleRightEye);
+	
+	// Estimate the face region using landmarks
+	int rx = std::max(0.0f, (float)targetLandmarks[0].x - (targetEyesDist / 2));
+	int ry = std::max(0.0f, ((targetLandmarks[24].y + targetLandmarks[19].y) / 2) - targetEyesDist);
+	int rw = std::min((float)targetImg.cols, targetLandmarks[16].x - targetLandmarks[0].x + targetEyesDist);
+	int rh = std::min((float)targetImg.rows, targetLandmarks[8].y - ((targetLandmarks[24].y + targetLandmarks[19].y) / 2) + (targetEyesDist * 1.5f));
+	//cv::rectangle(targetImg, cv::Rect(rx, ry, rw, rh), cv::Scalar(0, 0, 255));
+	cv::Mat targetFace = cv::Mat(targetImg, cv::Rect(rx, ry, rw, rh));
+
+	// SCALE
+	float scaleRatio = styleEyesDist / targetEyesDist;
+	float targetFaceRatio = (float)targetFace.rows / targetFace.cols;
+
+	int newWidth = round(targetFace.cols * scaleRatio);
+	int newHeight = round(newWidth * targetFaceRatio);
+	cv::resize(targetFace, targetFace, cv::Size(newWidth, newHeight));
+
+	targetLandmarks = CartesianCoordinateSystem::recomputePointsDueToScale(targetLandmarks, scaleRatio, cv::Point2i(rx, ry), cv::Size(targetImg.cols, targetImg.rows));
+
+	// TRANSLATION
+	cv::Point2i translationShift = styleLandmarks[30] - targetLandmarks[30]; // x and y shift of the target's and style's nose tip
+	targetLandmarks = CartesianCoordinateSystem::recomputePointsDueToTranslation(targetLandmarks, translationShift, cv::Size(targetImg.cols, targetImg.rows));
+
+	//cv::rectangle(targetImg, cv::Rect(rx + translationShift.x, ry + translationShift.y, newWidth, newHeight), cv::Scalar(0, 255, 0));
+	//cv::Mat blackImg = cv::Mat::zeros(targetImg.rows, targetImg.cols, targetImg.type());
+	//CartesianCoordinateSystem::drawLandmarks(blackImg, styleLandmarks, cv::Scalar(0,0,255));
+	//CartesianCoordinateSystem::drawLandmarks(blackImg, targetLandmarks, cv::Scalar(0, 255, 0), "circles", "TESTS\\frames\\" + std::to_string(i + 1000) + ".png");
+	//Window::imgShow("res", blackImg);
+
+	// INSET the face region (scaled and translated) into the target (black) image
+	targetImg = cv::Mat::zeros(targetImg.rows, targetImg.cols, targetImg.type());
+	cv::Mat destROI(targetImg, cv::Rect(rx + translationShift.x, ry + translationShift.y, newWidth, newHeight));
+	targetFace.copyTo(destROI);
+	
+	//CartesianCoordinateSystem::drawLandmarks(targetImg, targetLandmarks);
+	//Window::imgShow("res", targetImg);
 }
 
 
@@ -526,7 +576,7 @@ cv::Mat& scanImageAndReduceC(cv::Mat& image, const unsigned char* const table)
 }
 
 
-cv::Mat getLookUpCube(const cv::Mat& stylePosGuide, const cv::Mat& styleAppGuide)
+cv::Mat getLookUpCube(const cv::Mat& stylePosGuide, const cv::Mat& styleAppGuide, const int lambdaPos, const int lambdaApp)
 {
 	int sizes[] = { 256, 256, 256 };
 	cv::Mat lookUpCube(3, sizes, CV_16UC2); // 16bit unsigned short 0 - 65535 (2 channels - u, v coordinates in style)
@@ -556,7 +606,7 @@ cv::Mat getLookUpCube(const cv::Mat& stylePosGuide, const cv::Mat& styleAppGuide
 				{
 					for (int col = MAX(0, seedCol - radius); col < MIN(stylePosGuide.cols, seedCol + radius); col++)
 					{
-						int error = getError(stylePosGuide.at<cv::Vec3b>(row, col).val[1], stylePosGuide.at<cv::Vec3b>(row, col).val[2], y, x, styleAppGuide.at<uchar>(row, col), z);
+						int error = getError(stylePosGuide.at<cv::Vec3b>(row, col).val[1], stylePosGuide.at<cv::Vec3b>(row, col).val[2], y, x, styleAppGuide.at<uchar>(row, col), z, lambdaPos, lambdaApp);
 						if (error < minError)
 						{
 							minError = error;
@@ -621,7 +671,8 @@ cv::Mat loadLookUpCube(const std::string& path)
 }
 
 
-cv::Mat styleBlit(const cv::Mat& stylePosGuide, const cv::Mat& targetPosGuide, const cv::Mat& styleAppGuide, const cv::Mat& targetAppGuide, const cv::Mat& lookUpCube, const cv::Mat& styleImg, const cv::Rect2i stylizationRangeRect, const int threshold)
+cv::Mat styleBlit(const cv::Mat& stylePosGuide, const cv::Mat& targetPosGuide, const cv::Mat& styleAppGuide, const cv::Mat& targetAppGuide, const cv::Mat& lookUpCube, const cv::Mat& styleImg, 
+				  const cv::Rect2i stylizationRangeRect, const int threshold, const int lambdaPos, const int lambdaApp)
 {
 	int boxSize = 25;
 	int width = styleImg.cols;
@@ -643,23 +694,23 @@ cv::Mat styleBlit(const cv::Mat& stylePosGuide, const cv::Mat& targetPosGuide, c
 
 				const cv::Point2i styleSeedPoint(lookUpCube.at<cv::Vec2w>(targetPosGuide.at<cv::Vec3b>(rowT, colT).val[2],
 																		  targetPosGuide.at<cv::Vec3b>(rowT, colT).val[1],
-																		  targetAppGuide.at<uchar>(rowT, colT)));
+																		  targetAppGuide.empty() ? 0 : targetAppGuide.at<uchar>(rowT, colT)));
 
 				//BoxSeedGrow(rowT, colT, styleSeedPoint, boxSize, stylePosGuide, targetPosGuide, styleAppGuide, targetAppGuide, resultImg, styleImg, coveredPixels, chunkNumber, threshold);
-				DFSSeedGrow(cv::Point2i(colT, rowT), styleSeedPoint, stylePosGuide, targetPosGuide, styleAppGuide, targetAppGuide, resultImg, styleImg, coveredPixels, chunkNumber, threshold);
+				DFSSeedGrow(cv::Point2i(colT, rowT), styleSeedPoint, stylePosGuide, targetPosGuide, styleAppGuide, targetAppGuide, resultImg, styleImg, coveredPixels, chunkNumber, threshold, lambdaPos, lambdaApp);
 				chunkNumber++;
 			}
 		}
 	}
-	//VisualizeChunks(coveredPixels);
-	//ChunkStatistics(coveredPixels);
+	//visualizeChunks(coveredPixels);
+	//chunkStatistics(coveredPixels);
 
 	return resultImg;
 }
 
 
 cv::Mat styleBlit_voting(const cv::Mat& stylePosGuide, const cv::Mat& targetPosGuide, const cv::Mat& styleAppGuide, const cv::Mat& targetAppGuide, const cv::Mat& lookUpCube, const cv::Mat& styleImg, 
-						 const cv::Rect2i stylizationRangeRect, const int patchsizeNNF, const int threshold)
+						 const cv::Rect2i stylizationRangeRect, const int patchsizeNNF, const int threshold, const int lambdaPos, const int lambdaApp)
 {
 	int boxSize = 25;
 	int width = styleImg.cols;
@@ -677,15 +728,21 @@ cv::Mat styleBlit_voting(const cv::Mat& stylePosGuide, const cv::Mat& targetPosG
 		{
 			if (coveredPixels.at<int>(rowT, colT) == 0) // not stylized pixel yet
 			{
-				// normalized values of G (rows) and R (cols) channels are coordinates of a corresponding pixel in the original gradient:
-				//const cv::Point2i styleSeedPoint(targetPosGuide.at<cv::Vec3b>(rowT, colT).val[2] * xNorm, /*R*/ targetPosGuide.at<cv::Vec3b>(rowT, colT).val[1] * yNorm); /*G*/
-
-				const cv::Point2i styleSeedPoint(lookUpCube.at<cv::Vec2w>(targetPosGuide.at<cv::Vec3b>(rowT, colT).val[2],
+				cv::Point2i styleSeedPoint;
+				if (lambdaApp == 0) // Without appearance
+				{
+					// normalized values of G (rows) and R (cols) channels are coordinates of a corresponding pixel in the original gradient:
+					styleSeedPoint = cv::Point2i(targetPosGuide.at<cv::Vec3b>(rowT, colT).val[2] * xNorm, /*R*/ targetPosGuide.at<cv::Vec3b>(rowT, colT).val[1] * yNorm); /*G*/
+				}
+				else
+				{
+					styleSeedPoint = cv::Point2i(lookUpCube.at<cv::Vec2w>(targetPosGuide.at<cv::Vec3b>(rowT, colT).val[2],
 																		  targetPosGuide.at<cv::Vec3b>(rowT, colT).val[1],
 																		  targetAppGuide.at<uchar>(rowT, colT)));
+				}
 
 				//boxSeedGrow_voting(rowT, colT, styleSeedPoint, boxSize, stylePosGuide, targetPosGuide, styleAppGuide, targetAppGuide, resultImg, styleImg, coveredPixels, chunkNumber, threshold);
-				DFSSeedGrow_voting(cv::Point2i(colT, rowT), styleSeedPoint, stylePosGuide, targetPosGuide, styleAppGuide, targetAppGuide, NNF, /*styleImg,*/ coveredPixels, chunkNumber, threshold);
+				DFSSeedGrow_voting(cv::Point2i(colT, rowT), styleSeedPoint, stylePosGuide, targetPosGuide, styleAppGuide, targetAppGuide, NNF, /*styleImg,*/ coveredPixels, chunkNumber, threshold, lambdaPos, lambdaApp);
 				chunkNumber++;
 			}
 		}
@@ -703,9 +760,9 @@ cv::Mat styleBlit_voting(const cv::Mat& stylePosGuide, const cv::Mat& targetPosG
 }
 
 
-int getError(int stylePosPixelG, int stylePosPixelR, int targetPosPixelG, int targetPosPixelR, uchar styleAppPixel, uchar targetAppPixel)
+int getError(int stylePosPixelG, int stylePosPixelR, int targetPosPixelG, int targetPosPixelR, uchar styleAppPixel, uchar targetAppPixel, const int LAMBDA_POS, const int LAMBDA_APP)
 {
-	int LAMBDA_POS = 10, LAMBDA_APP = 2; // weights
+	//int LAMBDA_POS = 10, LAMBDA_APP = 2; // weights
 
 	// Positional guide
 	int posErr = abs(stylePosPixelG - targetPosPixelG); // green
@@ -718,7 +775,7 @@ int getError(int stylePosPixelG, int stylePosPixelR, int targetPosPixelG, int ta
 	return totalError;
 }
 
-
+/*
 // Grow the seed pixel while the chunk is smaller than given box size OR error < threshold
 void boxSeedGrow(int rowT, int colT, cv::Point2i seedPoint, int boxSize, const cv::Mat& stylePosGuide, const cv::Mat& targetPosGuide, const cv::Mat& styleAppGuide, const cv::Mat& targetAppGuide,
 				 cv::Mat& resultImg, const cv::Mat& styleImg, cv::Mat1i& coveredPixels, int chunkNumber, const int threshold)
@@ -749,12 +806,12 @@ void boxSeedGrow(int rowT, int colT, cv::Point2i seedPoint, int boxSize, const c
 			}
 		}
 	}
-}
+}*/
 
 
 // Grow the seed pixel according to the DFS while error < threshold
 void DFSSeedGrow(cv::Point2i targetSeedPoint, cv::Point2i styleSeedPoint, const cv::Mat& stylePosGuide, const cv::Mat& targetPosGuide, const cv::Mat& styleAppGuide, const cv::Mat& targetAppGuide,
-				 cv::Mat& resultImg, const cv::Mat& styleImg, cv::Mat1i& coveredPixels, int chunkNumber, const int threshold)
+				 cv::Mat& resultImg, const cv::Mat& styleImg, cv::Mat1i& coveredPixels, int chunkNumber, const int threshold, const int lambdaPos, const int lambdaApp)
 {
 	//int threshold = 50;
 
@@ -776,7 +833,8 @@ void DFSSeedGrow(cv::Point2i targetSeedPoint, cv::Point2i styleSeedPoint, const 
 								 targetPosGuide.at<cv::Vec3b>(targetSeedPoint.y + offset.y, targetSeedPoint.x + offset.x).val[1],
 								 targetPosGuide.at<cv::Vec3b>(targetSeedPoint.y + offset.y, targetSeedPoint.x + offset.x).val[2],
 								 styleAppGuide.empty() ? 0 : styleAppGuide.at<uchar>(styleSeedPoint.y + offset.y, styleSeedPoint.x + offset.x),
-								 targetAppGuide.empty() ? 0 : targetAppGuide.at<uchar>(targetSeedPoint.y + offset.y, targetSeedPoint.x + offset.x));
+								 targetAppGuide.empty() ? 0 : targetAppGuide.at<uchar>(targetSeedPoint.y + offset.y, targetSeedPoint.x + offset.x),
+								 lambdaPos, lambdaApp);
 			if (error < threshold || offset == cv::Point2i(0, 0)) // always stylize seed point (cannot be found better correspondence) OR error < threshold
 			{
 				resultImg.at<cv::Vec3b>(targetSeedPoint.y + offset.y, targetSeedPoint.x + offset.x) = styleImg.at<cv::Vec3b>(styleSeedPoint.y + offset.y, styleSeedPoint.x + offset.x);
@@ -982,7 +1040,7 @@ cv::Mat votingOnNNF(const cv::Mat& style, const cv::Mat2i& NNF, const int patchs
 
 // Grow the seed pixel according to the DFS while error < threshold
 void DFSSeedGrow_voting(cv::Point2i targetSeedPoint, cv::Point2i styleSeedPoint, const cv::Mat& stylePosGuide, const cv::Mat& targetPosGuide, const cv::Mat& styleAppGuide, const cv::Mat& targetAppGuide,
-	cv::Mat2i& NNF,/* const cv::Mat& styleImg,*/ cv::Mat1i& coveredPixels, int chunkNumber, const int threshold)
+	cv::Mat2i& NNF,/* const cv::Mat& styleImg,*/ cv::Mat1i& coveredPixels, int chunkNumber, const int threshold, const int lambdaPos, const int lambdaApp)
 {
 	//int threshold = 50;
 
@@ -1000,11 +1058,12 @@ void DFSSeedGrow_voting(cv::Point2i targetSeedPoint, cv::Point2i styleSeedPoint,
 		if (pixelIsNotCovered(targetSeedPoint + offset, coveredPixels))
 		{
 			int error = getError(stylePosGuide.at<cv::Vec3b>(styleSeedPoint.y + offset.y, styleSeedPoint.x + offset.x).val[1],
-				stylePosGuide.at<cv::Vec3b>(styleSeedPoint.y + offset.y, styleSeedPoint.x + offset.x).val[2],
-				targetPosGuide.at<cv::Vec3b>(targetSeedPoint.y + offset.y, targetSeedPoint.x + offset.x).val[1],
-				targetPosGuide.at<cv::Vec3b>(targetSeedPoint.y + offset.y, targetSeedPoint.x + offset.x).val[2],
-				styleAppGuide.empty() ? 0 : styleAppGuide.at<uchar>(styleSeedPoint.y + offset.y, styleSeedPoint.x + offset.x),
-				targetAppGuide.empty() ? 0 : targetAppGuide.at<uchar>(targetSeedPoint.y + offset.y, targetSeedPoint.x + offset.x));
+								 stylePosGuide.at<cv::Vec3b>(styleSeedPoint.y + offset.y, styleSeedPoint.x + offset.x).val[2],
+								 targetPosGuide.at<cv::Vec3b>(targetSeedPoint.y + offset.y, targetSeedPoint.x + offset.x).val[1],
+								 targetPosGuide.at<cv::Vec3b>(targetSeedPoint.y + offset.y, targetSeedPoint.x + offset.x).val[2],
+								 styleAppGuide.empty() ? 0 : styleAppGuide.at<uchar>(styleSeedPoint.y + offset.y, styleSeedPoint.x + offset.x),
+								 targetAppGuide.empty() ? 0 : targetAppGuide.at<uchar>(targetSeedPoint.y + offset.y, targetSeedPoint.x + offset.x),
+								 lambdaPos, lambdaApp);
 			
 			if (error < threshold || offset == cv::Point2i(0, 0)) // always stylize seed point (cannot be found better correspondence) OR error < threshold
 			{
