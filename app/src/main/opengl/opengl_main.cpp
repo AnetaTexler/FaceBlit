@@ -153,3 +153,31 @@ void FB_OpenGL::FullScreenQuad::draw() {
 
 	glUseProgram(0);
 }
+
+GLuint FB_OpenGL::makeTexture(cv::Mat image) {
+	GLuint texture;
+
+	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+
+	cv::flip(image, image, 0); // OpenCV stores top to bottom, but we need the image bottom to top for OpenGL.
+	cv::cvtColor(image, image, cv::COLOR_BGR2RGB); // OpenCV uses BGR format, need to convert it to RGB for OpenGL.
+
+	glTexImage2D(GL_TEXTURE_2D,
+		0,
+		GL_RGBA8,
+		image.cols,
+		image.rows,
+		0,
+		GL_RGB,
+		GL_UNSIGNED_BYTE,
+		image.ptr());
+
+	return texture;
+}

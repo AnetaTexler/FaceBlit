@@ -841,9 +841,66 @@ int main() {
 	const std::string root = "C:\\Work\\TestDataset\\Videos";
 	//const std::string root = std::filesystem::current_path().string();
 
-	const std::string styleName = "watercolorgirl.png";					// name of a style image from dir root/styles
-	cv::Mat styleImg = cv::imread(root + "\\styles\\" + styleName);
+	std::string styleName = "watercolorgirl.png";			// name of a style image from dir root/styles with extension
+	std::string videoName = "target6.mp4";					// name of a target video with extension
+	const int NNF_patchsize = 3;							// voting patch size (0 for no voting)
+	const bool transparentBG = false;						// choice of background (true = transparent bg, false = target image bg)
+	//const bool frontCamera = true;							// camera facing
+	// *********************************************************************************************************************************
 
+	std::string styleNameNoExtension = styleName.substr(0, styleName.find_last_of("."));
+
+	// --- READ STYLE FILES --------------------------------------------------
+	cv::Mat styleImg = cv::imread(root + "\\styles\\" + styleName);
+	std::ifstream styleLandmarkFile(root + "\\styles\\" + styleNameNoExtension + "_lm.txt");
+	std::string styleLandmarkStr((std::istreambuf_iterator<char>(styleLandmarkFile)), std::istreambuf_iterator<char>());
+	styleLandmarkFile.close();
+	cv::Mat lookUpCube = loadLookUpCube(root + "\\styles\\" + styleNameNoExtension + "_lut.bytes");
+	// -----------------------------------------------------------------------
+	cv::Mat stylePosGuide = getGradient(styleImg.cols, styleImg.rows, false); // G_pos
+	cv::Mat styleAppGuide = getAppGuide(styleImg, true); // G_app
+	std::vector<cv::Point2i> styleLandmarks = getLandmarkPointsFromString(styleLandmarkStr.c_str());
+
+	// Add 2 landmarks into the bottom corners - to prevent the body moving during MLS deformation
+	styleLandmarks.push_back(cv::Point2i(0, styleImg.rows)); // left bottom corner
+	styleLandmarks.push_back(cv::Point2i(styleImg.cols, styleImg.rows)); // right bottom corner
+
+	// Open a video file
+	cv::VideoCapture cap(root + "\\" + videoName);
+	if (!cap.isOpened()) {
+		std::cout << "Unable to open the video." << std::endl;
+		system("pause");
+		return 1;
+	}
+
+	// Get the width/height and the FPS of the video
+	int width = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_WIDTH));
+	int height = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_HEIGHT));
+	double FPS = cap.get(cv::CAP_PROP_FPS) / 2;
+
+	// Create output directory
+	std::string outputDirPath = root + "\\out_" + videoName.substr(0, videoName.find_last_of(".")) + "\\" + styleNameNoExtension + "_" + std::to_string(NNF_patchsize) + "nnf_" + std::to_string((int)std::ceil(FPS)) + "fps";
+	makeDir(outputDirPath);
+
+	// Open a video file for writing (the MP4V codec works on OS X and Windows)
+	cv::VideoWriter out(outputDirPath + "\\result.mp4", cv::VideoWriter::fourcc('m', 'p', '4', 'v'), FPS, cv::Size(styleImg.cols, styleImg.rows));
+	if (!out.isOpened()) {
+		std::cout << "Error! Unable to open video file for output." << std::endl;
+		system("pause");
+		return 1;
+	}
+
+	// Load facemark models
+	//FacemarkDetector faceDetector("facemark_models\\lbpcascade_frontalface.xml", 1.1, 3, "facemark_models\\lbf_landmarks.yaml");
+	DlibDetector faceDetector("facemark_models\\shape_predictor_68_face_landmarks.dat");
+	std::pair<cv::Rect, std::vector<cv::Point2i>> faceDetResult; // face and its landmarks
+	std::vector<cv::Point2i> targetLandmarks;
+
+	cv::Mat frame;
+	int i = 0;
+
+	// *********************************************************************************************************************************
+	// OPENGL INITIALIZATION
 	if (!FB_OpenGL::init()) {
 		std::cout << "Something is wrong!" << std::endl;
 		return -1;
@@ -852,34 +909,70 @@ int main() {
 	FB_OpenGL::Shader debug_shader = FB_OpenGL::Shader("..\\app\\src\\main\\opengl\\shader\\pass_tex.vert", "..\\app\\src\\main\\opengl\\shader\\pass_tex.frag");
 	debug_shader.init();
 	FB_OpenGL::FullScreenQuad quad = FB_OpenGL::FullScreenQuad(&debug_shader);
-	GLuint quad_texture; 
-	
-	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-	glGenTextures(1, &quad_texture);
-	glBindTexture(GL_TEXTURE_2D, quad_texture);
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-
-	cv::flip(styleImg, styleImg, 0); // OpenCV stores top to bottom, but we need the image bottom to top for OpenGL
-	cv::cvtColor(styleImg, styleImg, cv::COLOR_BGR2RGB); // OpenCV uses BGR format, need to convert it to RGB for OpenGL
-
-	glTexImage2D(GL_TEXTURE_2D, 
-		0, 
-		GL_RGBA8, 
-		styleImg.cols, 
-		styleImg.rows, 
-		0, 
-		GL_RGB, 
-		GL_UNSIGNED_BYTE, 
-		styleImg.ptr());
-	
-	quad.setTextureID( &quad_texture );
+	//GLuint quad_texture = FB_OpenGL::makeTexture(styleImg);
+	//quad.setTextureID( &quad_texture );
 
 
 	while (true) {
+		cap >> frame;
+		if (frame.empty()) {
+			std::cout << "No more frames." << std::endl;
+			break;
+		}
+
+		if (i % 2 == 1) // skip odd frames when we want the half FPS (not in case of target12!!!)
+		{
+			i++;
+			continue;
+		}
+
+		faceDetector.detectFacemarks(frame, faceDetResult);
+		targetLandmarks = faceDetResult.second;
+
+		alignTargetToStyle(frame, targetLandmarks, styleLandmarks);
+
+		targetLandmarks.push_back(cv::Point2i(0, frame.rows)); // left bottom corner
+		targetLandmarks.push_back(cv::Point2i(frame.cols, frame.rows)); // right bottom corner
+
+		cv::Mat faceMask = getSkinMask(frame, targetLandmarks);
+
+		// Generate target guidance channels
+		cv::Mat targetPosGuide = MLSDeformation(stylePosGuide, styleLandmarks, targetLandmarks); // G_pos
+		cv::Mat targetAppGuide = getAppGuide(frame, false); // G_app
+		targetAppGuide = grayHistMatching(targetAppGuide, styleAppGuide);
+
+		// StyleBlit
+		cv::Mat stylizedImg, stylizedImgNoApp;
+		if (NNF_patchsize > 0)
+		{
+			stylizedImg = styleBlit_voting(stylePosGuide, targetPosGuide, styleAppGuide, targetAppGuide, lookUpCube, styleImg, cv::Rect2i(0, 0, frame.cols, frame.rows), NNF_patchsize);
+			stylizedImgNoApp = styleBlit_voting(stylePosGuide, targetPosGuide, cv::Mat(), cv::Mat(), lookUpCube, styleImg, cv::Rect2i(0, 0, frame.cols, frame.rows), NNF_patchsize, 20, 10, 0);
+		}
+		else
+			stylizedImg = styleBlit(stylePosGuide, targetPosGuide, styleAppGuide, targetAppGuide, lookUpCube, styleImg, cv::Rect2i(0, 0, frame.cols, frame.rows));
+
+		// Alpha blending
+		cv::Mat alphaBlendResult;
+		if (transparentBG)
+			alphaBlendResult = alphaBlendTransparentBG(stylizedImg, faceMask);
+		else
+			//alphaBlendResult = alphaBlendFG_BG(stylizedImg, frame, faceMask, 25.0);
+			alphaBlendResult = alphaBlendFG_BG(stylizedImg, stylizedImgNoApp, faceMask, 25.0);
+
+		//cv::circle(alphaBlendResult, targetLandmarks[30], radius, cv::Scalar(0, 255, 0), 3);
+		//CartesianCoordinateSystem::drawLandmarks(alphaBlendResult, targetLandmarks);
+		//cv::circle(alphaBlendResult, getAveragePoint(std::vector<cv::Point2i>(targetLandmarks.begin() + 48, targetLandmarks.begin() + 67)), 5, cv::Scalar(0, 0, 255), 3); // circle center
+		// Save frame to video
+		out << alphaBlendResult;
+
+		//Window::imgShow("Result", alphaBlendResult);
+
+		i++;
+
+		GLuint frame_as_texture = FB_OpenGL::makeTexture(alphaBlendResult);
+		quad.setTextureID(&frame_as_texture);
+
 		glClearColor(1.0f, 0.1f, 0.1f, 1.0f);
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);

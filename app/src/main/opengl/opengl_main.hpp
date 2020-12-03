@@ -9,6 +9,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <shader.hpp>
+#include <opencv2/core.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 
 struct GlobalOpenglData {
 	std::string programName;
@@ -37,6 +39,8 @@ namespace FB_OpenGL {
 	bool init();
 	bool SetOpenGLAttributes();
 	void opengl_debug();
+
+	GLuint makeTexture(cv::Mat image);
 
 
 	class FullScreenQuad {
