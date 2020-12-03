@@ -14,7 +14,7 @@
 #include <filesystem>
 #include <opencv2/core.hpp>
 
-
+#include <opengl_main.hpp>
 
 
 cv::Mat alphaBlendTransparentBG(cv::Mat foreground, cv::Mat alphaMask)
@@ -137,7 +137,7 @@ void createInputImages_LVLS2(const cv::Mat& style, cv::Mat& style_base_only, cv:
 // ############################################################################
 // #							VIDEO STYLIZATION							  #
 // ############################################################################
-int main()
+int xmain()
 {
 	// *** PARAMETERS TO SET ***********************************************************************************************************
 	const std::string root = "C:\\Users\\Aneta\\Desktop\\videos";
@@ -837,7 +837,64 @@ int xxmain()
 }
 
 
+int main() {
+	const std::string root = "C:\\Work\\TestDataset\\Videos";
+	//const std::string root = std::filesystem::current_path().string();
 
+	const std::string styleName = "watercolorgirl.png";					// name of a style image from dir root/styles
+	cv::Mat styleImg = cv::imread(root + "\\styles\\" + styleName);
+
+	if (!FB_OpenGL::init()) {
+		std::cout << "Something is wrong!" << std::endl;
+		return -1;
+	}
+
+	FB_OpenGL::Shader debug_shader = FB_OpenGL::Shader("..\\app\\src\\main\\opengl\\shader\\pass_tex.vert", "..\\app\\src\\main\\opengl\\shader\\pass_tex.frag");
+	debug_shader.init();
+	FB_OpenGL::FullScreenQuad quad = FB_OpenGL::FullScreenQuad(&debug_shader);
+	GLuint quad_texture; 
+	
+	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+	glGenTextures(1, &quad_texture);
+	glBindTexture(GL_TEXTURE_2D, quad_texture);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); 
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+
+	cv::flip(styleImg, styleImg, 0); // OpenCV stores top to bottom, but we need the image bottom to top for OpenGL
+	cv::cvtColor(styleImg, styleImg, cv::COLOR_BGR2RGB); // OpenCV uses BGR format, need to convert it to RGB for OpenGL
+
+	glTexImage2D(GL_TEXTURE_2D, 
+		0, 
+		GL_RGBA8, 
+		styleImg.cols, 
+		styleImg.rows, 
+		0, 
+		GL_RGB, 
+		GL_UNSIGNED_BYTE, 
+		styleImg.ptr());
+	
+	quad.setTextureID( &quad_texture );
+
+
+	while (true) {
+		glClearColor(1.0f, 0.1f, 0.1f, 1.0f);
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glViewport(0, 0, globalOpenglData.w_width, globalOpenglData.w_height);
+		glEnable(GL_DEPTH_TEST);
+
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		quad.draw();
+
+		SDL_GL_SwapWindow(globalOpenglData.mainWindow);
+	}
+	
+	return 0;
+}
 
 
 
