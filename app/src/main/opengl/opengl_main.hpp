@@ -41,6 +41,7 @@ namespace FB_OpenGL {
 	void opengl_debug();
 
 	GLuint makeTexture(cv::Mat image);
+	void updateTexture(GLint texture, cv::Mat image);
 
 
 	class FullScreenQuad {
@@ -50,7 +51,7 @@ namespace FB_OpenGL {
 		~FullScreenQuad() {}
 
 		void setTextureID(GLuint *_textureID) { textureID = _textureID; }
-		void draw();
+		virtual void draw();
 
 	protected:
 		Shader* shader = NULL;
@@ -72,6 +73,34 @@ namespace FB_OpenGL {
 
 		GLuint* textureID = NULL;
 
+	};
+
+	class StyblitRenderer : public FullScreenQuad {
+	public:
+		StyblitRenderer() {}
+		StyblitRenderer(Shader* _shader) : FullScreenQuad(_shader) {}
+		~StyblitRenderer() {}
+
+		virtual void draw();
+
+		void setTextures(GLuint* _stylePosGuideTextureID, 
+			GLuint* _targetPosGuideTextureID, 
+			GLuint* _styleAppGuideTextureID, 
+			GLuint* _targetAppGuideTextureID, 
+			GLuint* _styleImgTextureID) {
+				stylePosGuideTextureID = _stylePosGuideTextureID;
+				targetPosGuideTextureID = _targetPosGuideTextureID;
+				styleAppGuideTextureID = _styleAppGuideTextureID;
+				targetAppGuideTextureID = _targetAppGuideTextureID;
+				styleImgTextureID = _styleImgTextureID;	
+		}
+
+	protected:
+		GLuint* stylePosGuideTextureID = NULL;
+		GLuint* targetPosGuideTextureID = NULL;
+		GLuint* styleAppGuideTextureID = NULL;
+		GLuint* targetAppGuideTextureID = NULL;
+		GLuint* styleImgTextureID = NULL;
 	};
 
 };

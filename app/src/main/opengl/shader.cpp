@@ -148,6 +148,12 @@ bool FB_OpenGL::Shader::init() {
 	MmatrixLocation = glGetUniformLocation(program, "Mmatrix");
 	useTextureLocation = glGetUniformLocation(program, "useTexture");
 
+	stylePosGuideLocation = glGetUniformLocation(program, "stylePosGuide");
+	targetPosGuideLocation = glGetUniformLocation(program, "targetPosGuide");
+	styleAppGuideLocation = glGetUniformLocation(program, "styleAppGuide");
+	targetAppGuideLocation = glGetUniformLocation(program, "targetAppGuide");
+	styleImgLocation = glGetUniformLocation(program, "styleImg");
+
 	std::cout << "Shader init successful" << std::endl;
 	return true;
 };

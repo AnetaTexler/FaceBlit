@@ -907,12 +907,24 @@ int main() {
 	}
 
 	FB_OpenGL::Shader debug_shader = FB_OpenGL::Shader("..\\app\\src\\main\\opengl\\shader\\pass_tex.vert", "..\\app\\src\\main\\opengl\\shader\\pass_tex.frag");
+	FB_OpenGL::Shader styleblit_shader = FB_OpenGL::Shader("..\\app\\src\\main\\opengl\\shader\\pass_tex.vert", "..\\app\\src\\main\\opengl\\shader\\styleblit_main.frag");
 	debug_shader.init();
+	styleblit_shader.init();
+
 	FB_OpenGL::FullScreenQuad quad = FB_OpenGL::FullScreenQuad(&debug_shader);
+	FB_OpenGL::StyblitRenderer styleblit_main = FB_OpenGL::StyblitRenderer(&styleblit_shader);
 
 	//GLuint quad_texture = FB_OpenGL::makeTexture(styleImg);
 	//quad.setTextureID( &quad_texture );
 
+	// ************************ OPENGL VARIABLES ******************
+	GLuint stylePosGuide_texture = 0;
+	GLuint targetPosGuide_texture = 0;
+	GLuint styleAppGuide_texture = 0;
+	GLuint targetAppGuide_texture = 0;
+	GLuint styleImg_texture = 0;
+
+	// GLuint frame_as_texture = 0;
 
 	while (true) {
 		cap >> frame;
@@ -970,8 +982,29 @@ int main() {
 
 		i++;
 
-		GLuint frame_as_texture = FB_OpenGL::makeTexture(alphaBlendResult);
-		quad.setTextureID(&frame_as_texture);
+		/*if (i > 2) {
+			FB_OpenGL::updateTexture(frame_as_texture, alphaBlendResult);
+		}
+		else {
+			frame_as_texture = FB_OpenGL::makeTexture(alphaBlendResult.clone());
+			quad.setTextureID(&frame_as_texture);
+		}*/
+
+		if (i > 2) {
+			FB_OpenGL::updateTexture(stylePosGuide_texture, stylePosGuide.clone()); // Not needed, just for debug now.
+			FB_OpenGL::updateTexture(targetPosGuide_texture, targetPosGuide.clone());
+			FB_OpenGL::updateTexture(styleAppGuide_texture, styleAppGuide.clone()); // Not needed, just for debug now.
+			FB_OpenGL::updateTexture(targetAppGuide_texture, targetAppGuide.clone());
+			FB_OpenGL::updateTexture(styleImg_texture, styleImg.clone()); // Not needed, just for debug now.
+		}
+		else {
+			stylePosGuide_texture = FB_OpenGL::makeTexture(stylePosGuide.clone());
+			targetPosGuide_texture = FB_OpenGL::makeTexture(targetPosGuide.clone());
+			styleAppGuide_texture = FB_OpenGL::makeTexture(styleAppGuide.clone());
+			targetAppGuide_texture = FB_OpenGL::makeTexture(targetAppGuide.clone());
+			styleImg_texture = FB_OpenGL::makeTexture(styleImg.clone());
+			styleblit_main.setTextures(&stylePosGuide_texture, &targetPosGuide_texture, &styleAppGuide_texture, &targetAppGuide_texture, &styleImg_texture);
+		}
 
 		glClearColor(1.0f, 0.1f, 0.1f, 1.0f);
 
@@ -981,7 +1014,7 @@ int main() {
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		quad.draw();
+		styleblit_main.draw();
 
 		SDL_GL_SwapWindow(globalOpenglData.mainWindow);
 	}

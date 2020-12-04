@@ -103,5 +103,8 @@
     <None Include="..\app\src\main\opengl\shader\pass_tex.vert">
       <Filter>Source Files\Shaders</Filter>
     </None>
+    <None Include="..\app\src\main\opengl\shader\styleblit_main.frag">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

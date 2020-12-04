@@ -154,10 +154,42 @@ void FB_OpenGL::FullScreenQuad::draw() {
 	glUseProgram(0);
 }
 
+void FB_OpenGL::StyblitRenderer::draw() {
+	shader->useProgram();
+
+	glBindVertexArray(vertexArrayObject);
+
+	// Texture handling
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, *(stylePosGuideTextureID));
+	glUniform1i(shader->getStylePosGuideLocation(), 0);
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, *(targetPosGuideTextureID));
+	glUniform1i(shader->getTargetPosGuideLocation(), 1);
+
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, *(styleAppGuideTextureID));
+	glUniform1i(shader->getStyleAppGuideLocation(), 2);
+
+	glActiveTexture(GL_TEXTURE3);
+	glBindTexture(GL_TEXTURE_2D, *(targetAppGuideTextureID));
+	glUniform1i(shader->getTargetAppGuideLocation(), 3);
+
+	glActiveTexture(GL_TEXTURE4);
+	glBindTexture(GL_TEXTURE_2D, *(styleImgTextureID));
+	glUniform1i(shader->getStyleImgLocation(), 4);
+
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	glBindVertexArray(0);
+
+	glUseProgram(0);
+}
+
 GLuint FB_OpenGL::makeTexture(cv::Mat image) {
 	GLuint texture;
 
-	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+	// glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 	glGenTextures(1, &texture);
 	glBindTexture(GL_TEXTURE_2D, texture);
 
@@ -179,5 +211,28 @@ GLuint FB_OpenGL::makeTexture(cv::Mat image) {
 		GL_UNSIGNED_BYTE,
 		image.ptr());
 
+	glBindTexture(GL_TEXTURE_2D, 0);
+
 	return texture;
+}
+
+void FB_OpenGL::updateTexture(GLint texture, cv::Mat image) {
+
+	glBindTexture(GL_TEXTURE_2D, texture);
+
+	cv::flip(image, image, 0); // OpenCV stores top to bottom, but we need the image bottom to top for OpenGL.
+	cv::cvtColor(image, image, cv::COLOR_BGR2RGB); // OpenCV uses BGR format, need to convert it to RGB for OpenGL.
+
+	glTexSubImage2D(GL_TEXTURE_2D,
+		0,
+		0,
+		0,
+		image.cols,
+		image.rows,
+		GL_RGB,
+		GL_UNSIGNED_BYTE,
+		image.ptr());
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+
 }

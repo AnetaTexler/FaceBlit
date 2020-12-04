@@ -32,6 +32,11 @@ namespace FB_OpenGL {
 			GLint getTexCoordLocation() { return texCoordLocation; }
 			GLint getTexSamplerLocation() { return texSamplerLocation; }
 
+			GLint getStylePosGuideLocation() { return stylePosGuideLocation; }
+			GLint getTargetPosGuideLocation() { return targetPosGuideLocation; }
+			GLint getStyleAppGuideLocation() { return styleAppGuideLocation; }
+			GLint getTargetAppGuideLocation() { return targetAppGuideLocation; }
+			GLint getStyleImgLocation() { return styleImgLocation; }
 
 			GLuint getUseTextureLocation() { return useTextureLocation; }
 			GLuint getPVMmatrixLocation() { return PVMmatrixLocation; }
@@ -58,6 +63,12 @@ namespace FB_OpenGL {
 			GLuint PVMmatrixLocation;
 			GLuint VmatrixLocation;
 			GLuint MmatrixLocation;
+
+			GLint stylePosGuideLocation;
+			GLint targetPosGuideLocation;
+			GLint styleAppGuideLocation;
+			GLint targetAppGuideLocation;
+			GLint styleImgLocation;
 	};
 
 };
