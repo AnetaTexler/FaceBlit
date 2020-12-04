@@ -913,6 +913,7 @@ int main() {
 
 	FB_OpenGL::FullScreenQuad quad = FB_OpenGL::FullScreenQuad(&debug_shader);
 	FB_OpenGL::StyblitRenderer styleblit_main = FB_OpenGL::StyblitRenderer(&styleblit_shader);
+	styleblit_main.setWidthHeight( styleImg.cols, styleImg.rows);
 
 	//GLuint quad_texture = FB_OpenGL::makeTexture(styleImg);
 	//quad.setTextureID( &quad_texture );
@@ -923,6 +924,7 @@ int main() {
 	GLuint styleAppGuide_texture = 0;
 	GLuint targetAppGuide_texture = 0;
 	GLuint styleImg_texture = 0;
+	GLuint lookUpTableTexture = FB_OpenGL::make3DTexture(lookUpCube);
 
 	// GLuint frame_as_texture = 0;
 
@@ -1003,7 +1005,7 @@ int main() {
 			styleAppGuide_texture = FB_OpenGL::makeTexture(styleAppGuide.clone());
 			targetAppGuide_texture = FB_OpenGL::makeTexture(targetAppGuide.clone());
 			styleImg_texture = FB_OpenGL::makeTexture(styleImg.clone());
-			styleblit_main.setTextures(&stylePosGuide_texture, &targetPosGuide_texture, &styleAppGuide_texture, &targetAppGuide_texture, &styleImg_texture);
+			styleblit_main.setTextures(&stylePosGuide_texture, &targetPosGuide_texture, &styleAppGuide_texture, &targetAppGuide_texture, &styleImg_texture, &lookUpTableTexture);
 		}
 
 		glClearColor(1.0f, 0.1f, 0.1f, 1.0f);

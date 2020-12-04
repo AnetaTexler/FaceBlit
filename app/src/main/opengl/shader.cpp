@@ -103,16 +103,16 @@ bool FB_OpenGL::Shader::init() {
 			glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &compiled);
 			if (compiled == GL_FALSE) {
 				GLint logSize = 0;
-				glGetShaderiv(vertexShader, GL_INFO_LOG_LENGTH, &logSize);
+				glGetShaderiv(fragmentShader, GL_INFO_LOG_LENGTH, &logSize);
 				// The maxLength includes the NULL character
 				std::vector<GLchar> errorLog(logSize);
-				glGetShaderInfoLog(vertexShader, logSize, &logSize, &errorLog[0]);
-
-				std::cout << "There was a problem trying to compile the fragment shader" << std::endl;
+				glGetShaderInfoLog(fragmentShader, logSize, &logSize, &errorLog[0]);
+			
 				for (int i = 0; i < errorLog.size(); i++)
 				{
 					std::cout << errorLog[i];
 				}
+				std::cout << "There was a problem trying to compile the fragment shader" << std::endl;
 				return false;
 			}
 
@@ -148,11 +148,15 @@ bool FB_OpenGL::Shader::init() {
 	MmatrixLocation = glGetUniformLocation(program, "Mmatrix");
 	useTextureLocation = glGetUniformLocation(program, "useTexture");
 
+	widthLocation = glGetUniformLocation(program, "width");
+	heightLocation = glGetUniformLocation(program, "height");
+
 	stylePosGuideLocation = glGetUniformLocation(program, "stylePosGuide");
 	targetPosGuideLocation = glGetUniformLocation(program, "targetPosGuide");
 	styleAppGuideLocation = glGetUniformLocation(program, "styleAppGuide");
 	targetAppGuideLocation = glGetUniformLocation(program, "targetAppGuide");
 	styleImgLocation = glGetUniformLocation(program, "styleImg");
+	LUTLocation = glGetUniformLocation(program, "LUT");
 
 	std::cout << "Shader init successful" << std::endl;
 	return true;

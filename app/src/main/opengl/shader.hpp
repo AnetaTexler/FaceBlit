@@ -32,11 +32,15 @@ namespace FB_OpenGL {
 			GLint getTexCoordLocation() { return texCoordLocation; }
 			GLint getTexSamplerLocation() { return texSamplerLocation; }
 
+			GLint getWidthLocation() { return widthLocation; }
+			GLint getHeightLocation() { return heightLocation; }
+
 			GLint getStylePosGuideLocation() { return stylePosGuideLocation; }
 			GLint getTargetPosGuideLocation() { return targetPosGuideLocation; }
 			GLint getStyleAppGuideLocation() { return styleAppGuideLocation; }
 			GLint getTargetAppGuideLocation() { return targetAppGuideLocation; }
 			GLint getStyleImgLocation() { return styleImgLocation; }
+			GLint getLUTLocation() { return LUTLocation; }
 
 			GLuint getUseTextureLocation() { return useTextureLocation; }
 			GLuint getPVMmatrixLocation() { return PVMmatrixLocation; }
@@ -57,6 +61,9 @@ namespace FB_OpenGL {
 			GLint normalLocation;
 			GLint texCoordLocation;
 
+			GLint widthLocation;
+			GLint heightLocation;
+
 			GLint texSamplerLocation;
 
 			GLuint useTextureLocation;
@@ -69,6 +76,8 @@ namespace FB_OpenGL {
 			GLint styleAppGuideLocation;
 			GLint targetAppGuideLocation;
 			GLint styleImgLocation;
+
+			GLint LUTLocation;
 	};
 
 };

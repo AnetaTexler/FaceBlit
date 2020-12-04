@@ -42,6 +42,7 @@ namespace FB_OpenGL {
 
 	GLuint makeTexture(cv::Mat image);
 	void updateTexture(GLint texture, cv::Mat image);
+	GLuint make3DTexture(cv::Mat cube);
 
 
 	class FullScreenQuad {
@@ -83,16 +84,20 @@ namespace FB_OpenGL {
 
 		virtual void draw();
 
+		void setWidthHeight(int _width, int _height) { width = _width; height = _height; }
+
 		void setTextures(GLuint* _stylePosGuideTextureID, 
 			GLuint* _targetPosGuideTextureID, 
 			GLuint* _styleAppGuideTextureID, 
 			GLuint* _targetAppGuideTextureID, 
-			GLuint* _styleImgTextureID) {
+			GLuint* _styleImgTextureID,
+			GLuint* _LUTTextureID) {
 				stylePosGuideTextureID = _stylePosGuideTextureID;
 				targetPosGuideTextureID = _targetPosGuideTextureID;
 				styleAppGuideTextureID = _styleAppGuideTextureID;
 				targetAppGuideTextureID = _targetAppGuideTextureID;
-				styleImgTextureID = _styleImgTextureID;	
+				styleImgTextureID = _styleImgTextureID;
+				LUTTextureID = _LUTTextureID;
 		}
 
 	protected:
@@ -101,6 +106,10 @@ namespace FB_OpenGL {
 		GLuint* styleAppGuideTextureID = NULL;
 		GLuint* targetAppGuideTextureID = NULL;
 		GLuint* styleImgTextureID = NULL;
+		GLuint* LUTTextureID = NULL;
+
+		int width;
+		int height;
 	};
 
 };

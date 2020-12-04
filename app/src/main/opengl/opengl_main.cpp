@@ -180,6 +180,13 @@ void FB_OpenGL::StyblitRenderer::draw() {
 	glBindTexture(GL_TEXTURE_2D, *(styleImgTextureID));
 	glUniform1i(shader->getStyleImgLocation(), 4);
 
+	glActiveTexture(GL_TEXTURE5);
+	glBindTexture(GL_TEXTURE_3D, *(LUTTextureID));
+	glUniform1i(shader->getLUTLocation(), 5);
+
+	glUniform1i(shader->getWidthLocation(), width);
+	glUniform1i(shader->getHeightLocation(), height);
+
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	glBindVertexArray(0);
 
@@ -212,6 +219,38 @@ GLuint FB_OpenGL::makeTexture(cv::Mat image) {
 		image.ptr());
 
 	glBindTexture(GL_TEXTURE_2D, 0);
+
+	return texture;
+}
+
+GLuint FB_OpenGL::make3DTexture(cv::Mat cube) {
+	GLuint texture;
+
+	// glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_3D, texture);
+
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+	//cv::flip(image, image, 0); // OpenCV stores top to bottom, but we need the image bottom to top for OpenGL.
+	//cv::cvtColor(image, image, cv::COLOR_BGR2RGB); // OpenCV uses BGR format, need to convert it to RGB for OpenGL.
+
+	glTexImage3D(GL_TEXTURE_3D,
+		0,
+		GL_RG16UI,
+		cube.size[0],
+		cube.size[1],
+		cube.size[2],
+		0,
+		GL_RG_INTEGER,
+		GL_UNSIGNED_SHORT,
+		cube.ptr());
+
+	glBindTexture(GL_TEXTURE_3D, 0);
 
 	return texture;
 }
