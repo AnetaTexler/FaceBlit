@@ -858,6 +858,8 @@ int main() {
 	cv::Mat lookUpCube = loadLookUpCube(root + "\\styles\\" + styleNameNoExtension + "_lut.bytes");
 	// -----------------------------------------------------------------------
 	cv::Mat stylePosGuide = getGradient(styleImg.cols, styleImg.rows, false); // G_pos
+	cv::imwrite("test.png", stylePosGuide);
+
 	cv::Mat styleAppGuide = getAppGuide(styleImg, true); // G_app
 	std::vector<cv::Point2i> styleLandmarks = getLandmarkPointsFromString(styleLandmarkStr.c_str());
 
@@ -1007,10 +1009,15 @@ int main() {
 			FB_OpenGL::updateTexture(styleImg_texture, styleImg.clone()); // Not needed, just for debug now.
 		}
 		else {
+			// std::cout << "stylepos" << std::endl;
 			stylePosGuide_texture = FB_OpenGL::makeTexture(stylePosGuide.clone());
+			// std::cout << "targetpos" << std::endl;
 			targetPosGuide_texture = FB_OpenGL::makeTexture(targetPosGuide.clone());
+			// std::cout << "styleapp" << std::endl;
 			styleAppGuide_texture = FB_OpenGL::makeTexture(styleAppGuide.clone());
+			// std::cout << "targetapp" << std::endl;
 			targetAppGuide_texture = FB_OpenGL::makeTexture(targetAppGuide.clone());
+			// std::cout << "styleimg" << std::endl;
 			styleImg_texture = FB_OpenGL::makeTexture(styleImg.clone());
 			styleblit_main.setTextures(&stylePosGuide_texture, &targetPosGuide_texture, &styleAppGuide_texture, &targetAppGuide_texture, &styleImg_texture, &lookUpTableTexture);
 		}

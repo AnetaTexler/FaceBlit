@@ -197,6 +197,21 @@ void FB_OpenGL::StyblitRenderer::draw() {
 	glUseProgram(0);
 }
 
+const char* GetGLErrorStr(GLenum err)
+{
+	switch (err)
+	{
+	case GL_NO_ERROR:          return "No error";
+	case GL_INVALID_ENUM:      return "Invalid enum";
+	case GL_INVALID_VALUE:     return "Invalid value";
+	case GL_INVALID_OPERATION: return "Invalid operation";
+	case GL_STACK_OVERFLOW:    return "Stack overflow";
+	case GL_STACK_UNDERFLOW:   return "Stack underflow";
+	case GL_OUT_OF_MEMORY:     return "Out of memory";
+	default:                   return "Unknown error";
+	}
+}
+
 GLuint FB_OpenGL::makeTexture(cv::Mat image) {
 	GLuint texture;
 
@@ -212,17 +227,44 @@ GLuint FB_OpenGL::makeTexture(cv::Mat image) {
 	cv::flip(image, image, 0); // OpenCV stores top to bottom, but we need the image bottom to top for OpenGL.
 	cv::cvtColor(image, image, cv::COLOR_BGR2RGB); // OpenCV uses BGR format, need to convert it to RGB for OpenGL.
 
-	glTexImage2D(GL_TEXTURE_2D,
-		0,
-		GL_RGBA8,
-		image.cols,
-		image.rows,
-		0,
-		GL_RGB,
-		GL_UNSIGNED_BYTE,
-		image.ptr());
+	if (image.type() == CV_32FC3) {
+		glTexImage2D(GL_TEXTURE_2D,
+			0,
+			GL_RGB32F,
+			image.cols,
+			image.rows,
+			0,
+			GL_RGB,
+			GL_FLOAT,
+			image.ptr());
+	}
+	else if (image.type() == CV_16UC3) {
+		glTexImage2D(GL_TEXTURE_2D,
+			0,
+			GL_RGB16,
+			image.cols,
+			image.rows,
+			0,
+			GL_RGB,
+			GL_UNSIGNED_SHORT,
+			image.ptr());
+	} else {
+		glTexImage2D(GL_TEXTURE_2D,
+			0,
+			GL_RGB8,
+			image.cols,
+			image.rows,
+			0,
+			GL_RGB,
+			GL_UNSIGNED_BYTE,
+			image.ptr());
+	}
 
 	glBindTexture(GL_TEXTURE_2D, 0);
+
+	const GLenum err = glGetError();
+	if (GL_NO_ERROR != err)
+		std::cout << "GL Error: " << GetGLErrorStr(err) << std::endl;
 
 	return texture;
 }
@@ -296,15 +338,39 @@ void FB_OpenGL::updateTexture(GLint texture, cv::Mat image) {
 	cv::flip(image, image, 0); // OpenCV stores top to bottom, but we need the image bottom to top for OpenGL.
 	cv::cvtColor(image, image, cv::COLOR_BGR2RGB); // OpenCV uses BGR format, need to convert it to RGB for OpenGL.
 
-	glTexSubImage2D(GL_TEXTURE_2D,
-		0,
-		0,
-		0,
-		image.cols,
-		image.rows,
-		GL_RGB,
-		GL_UNSIGNED_BYTE,
-		image.ptr());
+	if (image.type() == CV_32FC3) {
+		glTexSubImage2D(GL_TEXTURE_2D,
+			0,
+			0,
+			0,
+			image.cols,
+			image.rows,
+			GL_RGB,
+			GL_FLOAT,
+			image.ptr());
+	}
+	else if (image.type() == CV_16UC3) {
+		glTexSubImage2D(GL_TEXTURE_2D,
+			0,
+			0,
+			0,
+			image.cols,
+			image.rows,
+			GL_RGB,
+			GL_UNSIGNED_SHORT,
+			image.ptr());
+	}
+	else {
+		glTexSubImage2D(GL_TEXTURE_2D,
+			0,
+			0,
+			0,
+			image.cols,
+			image.rows,
+			GL_RGB,
+			GL_UNSIGNED_BYTE,
+			image.ptr());
+	}
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 
