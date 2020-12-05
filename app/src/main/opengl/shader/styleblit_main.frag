@@ -17,7 +17,7 @@ uniform int height;
 in vec2 texCoord_v;
 out vec4 fragColor;
 
-int threshold = 50;
+float threshold = 50.0f/255.0f;
 int lambdaPos = 10; 
 int lambdaApp = 2;
 
