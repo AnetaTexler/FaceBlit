@@ -20,47 +20,88 @@ int threshold = 50;
 int lambdaPos = 10; 
 int lambdaApp = 2;
 
-/*vec3 getTargetGuide(vec2 position) {
-    vec2 pos_normalized = vec2( position.x / width, position.y / height );
-    return lambdaPos * texture(targetPosGuide, pos_normalized).rgb + lambdaApp * texture(targetAppGuide, pos_normalized).rgb;
+bool inside(vec2 uv)
+{
+  return (all(greaterThanEqual(uv,vec2(0,0))) && all(lessThan(uv,vec2(width, height))));
 }
 
-vec3 getSourceGuide(vec2 position) {
-    vec2 pos_normalized = vec2( position.x / width, position.y / height );
-    return lambdaPos * texture(sourcePosGuide, pos_normalized).rgb + lambdaApp * texture(sourceAppGuide, pos_normalized).rgb;
-}*/
+float getTargetGuide(vec2 position) {
+    vec2 pos_normalized = vec2( position.x / width, 1.0 - (float(position.y) / float(height)) );
+    vec3 total_guide = lambdaPos * texture(targetPosGuide, pos_normalized).rgb + lambdaApp * texture(targetAppGuide, pos_normalized).rgb;
+    return (total_guide.x + total_guide.y + total_guide.z);
+}
+
+float getStyleGuide(vec2 position) {
+    vec2 pos_normalized = vec2( position.x / width, 1.0 - (float(position.y) / float(height)) );
+    vec3 total_guide =  lambdaPos * texture(stylePosGuide, pos_normalized).rgb + lambdaApp * texture(styleAppGuide, pos_normalized).rgb;
+    return (total_guide.x + total_guide.y + total_guide.z);
+}
+
+vec2 SeedPoint(vec2 p,float h)
+{
+  vec2 b = floor(p/h);
+  return floor(h*b);
+  // vec2 j = RandomJitterTable(b);  
+  // return floor(h*(b+j));
+}
+
+vec2 NearestSeed(vec2 p,float h)
+{
+  vec2 s_nearest = vec2(0,0);
+  float d_nearest = 10000.0;
+
+  for(int x=-1;x<=+1;x++)
+  for(int y=-1;y<=+1;y++)
+  {
+    vec2 s = SeedPoint(p+h*vec2(x,y),h);
+    float d = length(s-p);
+    if (d<d_nearest)
+    {
+      s_nearest = s;
+      d_nearest = d;     
+    }
+  }
+
+  return s_nearest;
+}
+
+vec2 lookUp( vec2 position ) {
+    vec2 pos_normalized = vec2( float(position.x) / float(width), (float(position.y) / float(height)) );
+    vec2 target_guide = texture(targetPosGuide, pos_normalized).rg;
+    float target_app = texture(targetAppGuide, pos_normalized).r;
+    vec2 tex = texture(LUT, vec3(target_app, target_guide.g, target_guide.r) ).rg;
+    tex = vec2(tex.r, height - tex.g);
+    return tex;
+}
 
 void main() {
-  //fragColor = vec4(0.0f,1.0f,0.0f,1.0f);
 
-  vec2 position = gl_FragCoord.xy;
-  vec2 pos_normalized = vec2( float(position.x) / float(width), float(position.y) / float(height) );
-  vec2 target_guide = texture(targetPosGuide, pos_normalized).rg;
-  vec3 out_color = vec3( texture(LUT, vec3(0.5f, target_guide.g, target_guide.r) ).rg, 0.0f );
-  out_color = vec3(out_color.r / float(width), out_color.g / float(height), out_color.b);
-  fragColor = vec4(out_color, 1.0f);
-  // fragColor = vec4(0.0f,1.0f,0.0f,1.0f);
-  // fragColor = texture(targetPosGuide, texCoord_v);
-
-
-  // fragColor = texture(styleAppGuide, texCoord_v);
-
-  /*vec2 p = gl_FragCoord.xy-vec2(0.5,0.5);
-  vec2 o = ArgMinLookup(GT(p));
+  vec2 p = gl_FragCoord.xy-vec2(0.5,0.5);
+  vec2 o = lookUp(p);
 
   for(int level=6;level>=0;level--)
   {
     vec2 q = NearestSeed(p,pow(2.0,float(level)));
-    vec2 u = ArgMinLookup(GT(q));
+    vec2 u = lookUp(q);
     
-    float e = sum(abs(GT(p)-GS(u+(p-q))))*255.0;
+    float e = (abs(getTargetGuide(p)-getStyleGuide(u+(p-q))))*255.0;
     
     if (e<threshold)
     {
-      o = u+(p-q); if (inside(o,sourceSize)) { break; }
+      o = u+(p-q); if (inside(o)) { break; }
     }
   }
 
-  fragColor = texture(styleAppGuide, texCoord_v);*/
+  // fragColor = texture(styleAppGuide, texCoord_v);
+  vec2 final_normalized = vec2( o.x / float(width), o.y / float(height) );
+  // fragColor = vec4(texCoord_v,0.0f,1.0f);
+  fragColor = texture(styleImg, final_normalized);
   // gl_FragColor = pack(o);
+  // fragColor = vec4(0.0f,1.0f,0.0f,1.0f);
+  // fragColor = vec4(lookUp(p) / 1024,0.0f,1.0f);
+  // vec2 lut_norm = vec2( lookUp(p).x / 728, lookUp(p).y / 1024 );
+  // fragColor = texture(styleImg, lut_norm);
+
+  
+  // fragColor = texture(stylePosGuide, texCoord_v);
 }

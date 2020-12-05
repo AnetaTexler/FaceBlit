@@ -843,7 +843,7 @@ int main() {
 
 	std::string styleName = "watercolorgirl.png";			// name of a style image from dir root/styles with extension
 	std::string videoName = "target6.mp4";					// name of a target video with extension
-	const int NNF_patchsize = 3;							// voting patch size (0 for no voting)
+	const int NNF_patchsize = 1;							// voting patch size (0 for no voting)
 	const bool transparentBG = false;						// choice of background (true = transparent bg, false = target image bg)
 	//const bool frontCamera = true;							// camera facing
 	// *********************************************************************************************************************************
@@ -957,7 +957,7 @@ int main() {
 		targetAppGuide = grayHistMatching(targetAppGuide, styleAppGuide);
 
 		// StyleBlit
-		cv::Mat stylizedImg, stylizedImgNoApp;
+		/*cv::Mat stylizedImg, stylizedImgNoApp;
 		if (NNF_patchsize > 0)
 		{
 			stylizedImg = styleBlit_voting(stylePosGuide, targetPosGuide, styleAppGuide, targetAppGuide, lookUpCube, styleImg, cv::Rect2i(0, 0, frame.cols, frame.rows), NNF_patchsize);
@@ -978,9 +978,9 @@ int main() {
 		//CartesianCoordinateSystem::drawLandmarks(alphaBlendResult, targetLandmarks);
 		//cv::circle(alphaBlendResult, getAveragePoint(std::vector<cv::Point2i>(targetLandmarks.begin() + 48, targetLandmarks.begin() + 67)), 5, cv::Scalar(0, 0, 255), 3); // circle center
 		// Save frame to video
-		out << alphaBlendResult;
+		out << alphaBlendResult;*/
 
-		//Window::imgShow("Result", alphaBlendResult);
+		// Window::imgShow("Result", alphaBlendResult);
 
 		i++;
 
