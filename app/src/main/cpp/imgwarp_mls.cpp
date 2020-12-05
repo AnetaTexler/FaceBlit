@@ -61,7 +61,7 @@ Mat ImgWarp_MLS::genNewImg(const Mat &oriImg, double transRatio)
 					else
 					{
 						for (int ll = 0; ll < 3; ll++)
-							newImg.at<Vec3b>(i + di, j + dj)[ll] = bilinear_interp(ny - nyi, nx - nxi, oriImg.at<Vec3b>(nyi, nxi)[ll], oriImg.at<Vec3b>(nyi, nxi1)[ll], oriImg.at<Vec3b>(nyi1, nxi)[ll], oriImg.at<Vec3b>(nyi1, nxi1)[ll]);
+							newImg.at<cv::Vec3w>(i + di, j + dj)[ll] = bilinear_interp(ny - nyi, nx - nxi, oriImg.at<cv::Vec3w>(nyi, nxi)[ll], oriImg.at<cv::Vec3w>(nyi, nxi1)[ll], oriImg.at<cv::Vec3w>(nyi1, nxi)[ll], oriImg.at<cv::Vec3w>(nyi1, nxi1)[ll]);
 					}
 				}
 			}

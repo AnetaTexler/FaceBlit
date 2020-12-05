@@ -858,7 +858,6 @@ int main() {
 	cv::Mat lookUpCube = loadLookUpCube(root + "\\styles\\" + styleNameNoExtension + "_lut.bytes");
 	// -----------------------------------------------------------------------
 	cv::Mat stylePosGuide = getGradient(styleImg.cols, styleImg.rows, false); // G_pos
-	cv::imwrite("test.png", stylePosGuide);
 
 	cv::Mat styleAppGuide = getAppGuide(styleImg, true); // G_app
 	std::vector<cv::Point2i> styleLandmarks = getLandmarkPointsFromString(styleLandmarkStr.c_str());
