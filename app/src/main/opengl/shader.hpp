@@ -41,6 +41,7 @@ namespace FB_OpenGL {
 			GLint getTargetAppGuideLocation() { return targetAppGuideLocation; }
 			GLint getStyleImgLocation() { return styleImgLocation; }
 			GLint getLUTLocation() { return LUTLocation; }
+			GLint getJitterTableLocation() { return jitterTableLocation; }
 
 			GLuint getUseTextureLocation() { return useTextureLocation; }
 			GLuint getPVMmatrixLocation() { return PVMmatrixLocation; }
@@ -78,6 +79,7 @@ namespace FB_OpenGL {
 			GLint styleImgLocation;
 
 			GLint LUTLocation;
+			GLint jitterTableLocation;
 	};
 
 };

@@ -41,6 +41,7 @@ namespace FB_OpenGL {
 	void opengl_debug();
 
 	GLuint makeTexture(cv::Mat image);
+	GLuint makeJitterTable(cv::Mat image);
 	void updateTexture(GLint texture, cv::Mat image);
 	GLuint make3DTexture(cv::Mat cube);
 
@@ -100,6 +101,10 @@ namespace FB_OpenGL {
 				LUTTextureID = _LUTTextureID;
 		}
 
+		void setJitterTable(GLuint* _jitterTableID) {
+			jitterTableID = _jitterTableID;
+		}
+
 	protected:
 		GLuint* stylePosGuideTextureID = NULL;
 		GLuint* targetPosGuideTextureID = NULL;
@@ -107,6 +112,7 @@ namespace FB_OpenGL {
 		GLuint* targetAppGuideTextureID = NULL;
 		GLuint* styleImgTextureID = NULL;
 		GLuint* LUTTextureID = NULL;
+		GLuint* jitterTableID = NULL;
 
 		int width;
 		int height;

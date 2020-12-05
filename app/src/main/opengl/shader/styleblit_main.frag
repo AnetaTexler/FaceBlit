@@ -7,6 +7,7 @@ uniform sampler2D targetPosGuide;
 uniform sampler2D styleAppGuide;
 uniform sampler2D targetAppGuide;
 uniform sampler2D styleImg;
+uniform sampler2D jitterTable;
 uniform usampler3D LUT;
 
 // Only works when source and target are of the same size.
@@ -25,6 +26,11 @@ bool inside(vec2 uv)
   return (all(greaterThanEqual(uv,vec2(0,0))) && all(lessThan(uv,vec2(width, height))));
 }
 
+vec2 RandomJitterTable(vec2 uv)
+{
+  return (2*texture2D(jitterTable,(uv+vec2(0.5,0.5))).xy)-vec2(1.0f,1.0f);
+}
+
 float getTargetGuide(vec2 position) {
     vec2 pos_normalized = vec2( position.x / width, 1.0 - (float(position.y) / float(height)) );
     vec3 total_guide = lambdaPos * texture(targetPosGuide, pos_normalized).rgb + lambdaApp * texture(targetAppGuide, pos_normalized).rgb;
@@ -40,9 +46,8 @@ float getStyleGuide(vec2 position) {
 vec2 SeedPoint(vec2 p,float h)
 {
   vec2 b = floor(p/h);
-  return floor(h*b);
-  // vec2 j = RandomJitterTable(b);  
-  // return floor(h*(b+j));
+  vec2 j = RandomJitterTable(b);  
+  return floor(h*(b+j));
 }
 
 vec2 NearestSeed(vec2 p,float h)
@@ -102,6 +107,7 @@ void main() {
   // vec2 lut_norm = vec2( lookUp(p).x / 728, lookUp(p).y / 1024 );
   // fragColor = texture(styleImg, lut_norm);
 
+  // fragColor = vec4(0.0f,texture(jitterTable, texCoord_v).g,0.0f,1.0f);
   
-  // fragColor = texture(stylePosGuide, texCoord_v);
+  // fragColor = texture(jitterTable, texCoord_v);
 }

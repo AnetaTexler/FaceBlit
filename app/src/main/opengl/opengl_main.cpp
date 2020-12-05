@@ -184,6 +184,10 @@ void FB_OpenGL::StyblitRenderer::draw() {
 	glBindTexture(GL_TEXTURE_3D, *(LUTTextureID));
 	glUniform1i(shader->getLUTLocation(), 5);
 
+	glActiveTexture(GL_TEXTURE6);
+	glBindTexture(GL_TEXTURE_2D, *(jitterTableID));
+	glUniform1i(shader->getJitterTableLocation(), 6);
+
 	glUniform1i(shader->getWidthLocation(), width);
 	glUniform1i(shader->getHeightLocation(), height);
 
@@ -215,6 +219,36 @@ GLuint FB_OpenGL::makeTexture(cv::Mat image) {
 		image.rows,
 		0,
 		GL_RGB,
+		GL_UNSIGNED_BYTE,
+		image.ptr());
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	return texture;
+}
+
+GLuint FB_OpenGL::makeJitterTable(cv::Mat image) {
+	GLuint texture;
+
+	// glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+
+	cv::flip(image, image, 0); // OpenCV stores top to bottom, but we need the image bottom to top for OpenGL.
+	//cv::cvtColor(image, image, cv::COLOR_BGR2RGB); // OpenCV uses BGR format, need to convert it to RGB for OpenGL.
+
+	glTexImage2D(GL_TEXTURE_2D,
+		0,
+		GL_RG,
+		image.cols,
+		image.rows,
+		0,
+		GL_RG,
 		GL_UNSIGNED_BYTE,
 		image.ptr());
 

@@ -928,6 +928,13 @@ int main() {
 
 	// GLuint frame_as_texture = 0;
 
+	// Generate jitter table
+	cv::Mat gaussian_noise = cv::Mat::zeros(styleImg.rows, styleImg.cols, CV_8UC2);
+	cv::randu(gaussian_noise, 0, 255);
+	
+	GLuint jitter_table_texture = FB_OpenGL::makeJitterTable(gaussian_noise.clone());
+	styleblit_main.setJitterTable(&jitter_table_texture);
+
 	while (true) {
 		cap >> frame;
 		if (frame.empty()) {

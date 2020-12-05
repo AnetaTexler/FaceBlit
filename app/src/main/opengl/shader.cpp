@@ -157,6 +157,7 @@ bool FB_OpenGL::Shader::init() {
 	targetAppGuideLocation = glGetUniformLocation(program, "targetAppGuide");
 	styleImgLocation = glGetUniformLocation(program, "styleImg");
 	LUTLocation = glGetUniformLocation(program, "LUT");
+	jitterTableLocation = glGetUniformLocation(program, "jitterTable");
 
 	std::cout << "Shader init successful" << std::endl;
 	return true;
