@@ -106,5 +106,8 @@
     <None Include="..\app\src\main\opengl\shader\styleblit_main.frag">
       <Filter>Source Files\Shaders</Filter>
     </None>
+    <None Include="..\app\src\main\opengl\shader\styleblit_blend.frag">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

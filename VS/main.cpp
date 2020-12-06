@@ -838,6 +838,7 @@ int xxmain()
 
 
 int main() {
+	// Don't forget to change this path before you start.
 	const std::string root = "C:\\Work\\TestDataset\\Videos";
 	//const std::string root = std::filesystem::current_path().string();
 
@@ -909,12 +910,15 @@ int main() {
 
 	FB_OpenGL::Shader debug_shader = FB_OpenGL::Shader("..\\app\\src\\main\\opengl\\shader\\pass_tex.vert", "..\\app\\src\\main\\opengl\\shader\\pass_tex.frag");
 	FB_OpenGL::Shader styleblit_shader = FB_OpenGL::Shader("..\\app\\src\\main\\opengl\\shader\\pass_tex.vert", "..\\app\\src\\main\\opengl\\shader\\styleblit_main.frag");
+	FB_OpenGL::Shader blending_shader = FB_OpenGL::Shader("..\\app\\src\\main\\opengl\\shader\\pass_tex.vert", "..\\app\\src\\main\\opengl\\shader\\styleblit_blend.frag");
 	debug_shader.init();
 	styleblit_shader.init();
+	blending_shader.init();
 
-	FB_OpenGL::FullScreenQuad quad = FB_OpenGL::FullScreenQuad(&debug_shader);
+	FB_OpenGL::StyblitBlender quad = FB_OpenGL::StyblitBlender(&blending_shader);
 	FB_OpenGL::StyblitRenderer styleblit_main = FB_OpenGL::StyblitRenderer(&styleblit_shader);
 	styleblit_main.setWidthHeight( styleImg.cols, styleImg.rows);
+	quad.setWidthHeight(styleImg.cols, styleImg.rows);
 
 	//GLuint quad_texture = FB_OpenGL::makeTexture(styleImg);
 	//quad.setTextureID( &quad_texture );
@@ -927,6 +931,13 @@ int main() {
 	GLuint styleImg_texture = 0;
 	GLuint lookUpTableTexture = FB_OpenGL::make3DTexture(lookUpCube);
 
+	// Setup framebuffer for styleblit to make it render to a texture which we can further process.
+	GLuint styleblit_frame_buffer;
+	GLuint styleblit_render_buffer_depth_stencil;
+	GLuint styleblit_tex_color_buffer;
+	FB_OpenGL::makeFrameBuffer(globalOpenglData.w_width, globalOpenglData.w_height, styleblit_frame_buffer, styleblit_render_buffer_depth_stencil, styleblit_tex_color_buffer);
+
+	quad.setTextures(&styleblit_tex_color_buffer, &styleImg_texture);
 	// GLuint frame_as_texture = 0;
 
 	// Generate jitter table
@@ -964,87 +975,49 @@ int main() {
 		cv::Mat targetAppGuide = getAppGuide(frame, false); // G_app
 		targetAppGuide = grayHistMatching(targetAppGuide, styleAppGuide);
 
-		// StyleBlit
-		/*cv::Mat stylizedImg, stylizedImgNoApp;
-		if (NNF_patchsize > 0)
-		{
-			stylizedImg = styleBlit_voting(stylePosGuide, targetPosGuide, styleAppGuide, targetAppGuide, lookUpCube, styleImg, cv::Rect2i(0, 0, frame.cols, frame.rows), NNF_patchsize);
-			stylizedImgNoApp = styleBlit_voting(stylePosGuide, targetPosGuide, cv::Mat(), cv::Mat(), lookUpCube, styleImg, cv::Rect2i(0, 0, frame.cols, frame.rows), NNF_patchsize, 20, 10, 0);
-		}
-		else
-			stylizedImg = styleBlit(stylePosGuide, targetPosGuide, styleAppGuide, targetAppGuide, lookUpCube, styleImg, cv::Rect2i(0, 0, frame.cols, frame.rows));
-
-		// Alpha blending
-		cv::Mat alphaBlendResult;
-		if (transparentBG)
-			alphaBlendResult = alphaBlendTransparentBG(stylizedImg, faceMask);
-		else
-			//alphaBlendResult = alphaBlendFG_BG(stylizedImg, frame, faceMask, 25.0);
-			alphaBlendResult = alphaBlendFG_BG(stylizedImg, stylizedImgNoApp, faceMask, 25.0);
-
-		//cv::circle(alphaBlendResult, targetLandmarks[30], radius, cv::Scalar(0, 255, 0), 3);
-		//CartesianCoordinateSystem::drawLandmarks(alphaBlendResult, targetLandmarks);
-		//cv::circle(alphaBlendResult, getAveragePoint(std::vector<cv::Point2i>(targetLandmarks.begin() + 48, targetLandmarks.begin() + 67)), 5, cv::Scalar(0, 0, 255), 3); // circle center
-		// Save frame to video
-		out << alphaBlendResult;*/
-
-		Window::imgShow("Result", targetPosGuide);
-
 		i++;
 
-		/*if (i > 2) {
-			FB_OpenGL::updateTexture(frame_as_texture, alphaBlendResult);
-		}
-		else {
-			frame_as_texture = FB_OpenGL::makeTexture(alphaBlendResult.clone());
-			quad.setTextureID(&frame_as_texture);
-		}*/
-
+		// Make the Opencv Mat images into OpenGL accepted textures. On the 1st frame create the textures from scratch, after that we only need to update them to save memory.
 		if (i > 2) {
-			FB_OpenGL::updateTexture(stylePosGuide_texture, stylePosGuide.clone()); // Not needed, just for debug now.
 			FB_OpenGL::updateTexture(targetPosGuide_texture, targetPosGuide.clone());
-			FB_OpenGL::updateTexture(styleAppGuide_texture, styleAppGuide.clone()); // Not needed, just for debug now.
 			FB_OpenGL::updateTexture(targetAppGuide_texture, targetAppGuide.clone());
-			FB_OpenGL::updateTexture(styleImg_texture, styleImg.clone()); // Not needed, just for debug now.
 		}
 		else {
-			// std::cout << "stylepos" << std::endl;
 			stylePosGuide_texture = FB_OpenGL::makeTexture(stylePosGuide.clone());
-			// std::cout << "targetpos" << std::endl;
 			targetPosGuide_texture = FB_OpenGL::makeTexture(targetPosGuide.clone());
-			// std::cout << "styleapp" << std::endl;
 			styleAppGuide_texture = FB_OpenGL::makeTexture(styleAppGuide.clone());
-			// std::cout << "targetapp" << std::endl;
 			targetAppGuide_texture = FB_OpenGL::makeTexture(targetAppGuide.clone());
-			// std::cout << "styleimg" << std::endl;
 			styleImg_texture = FB_OpenGL::makeTexture(styleImg.clone());
 			styleblit_main.setTextures(&stylePosGuide_texture, &targetPosGuide_texture, &styleAppGuide_texture, &targetAppGuide_texture, &styleImg_texture, &lookUpTableTexture);
 		}
 
-		glClearColor(1.0f, 0.1f, 0.1f, 1.0f);
-
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		// Bind the StyleBlit framebuffer, which will make all operations render in a texture.
+		glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
+		glBindFramebuffer(GL_FRAMEBUFFER, styleblit_frame_buffer);
+		glDepthFunc(GL_ALWAYS);
 		glViewport(0, 0, globalOpenglData.w_width, globalOpenglData.w_height);
 		glEnable(GL_DEPTH_TEST);
-
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		styleblit_main.draw();
 
+		// Re-bind the default framebuffer.
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glDepthFunc(GL_ALWAYS);
+		glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+		glViewport(0, 0, globalOpenglData.w_width, globalOpenglData.w_height);
+		glEnable(GL_DEPTH_TEST);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		quad.draw();
+
 		SDL_GL_SwapWindow(globalOpenglData.mainWindow);
 
-		int key = cv::waitKey(10);
-		if (key == 27) {
-			break;
+		// Uncomment if you want to save the output NNF. Current implementation is leaking a bit, so be careful.
+		/*cv::Mat out_image = FB_OpenGL::get_ocv_img_from_gl_img(styleblit_tex_color_buffer);
+		out << out_image;
+		Window::imgShow("Result", out_image);*/
 
-		}
-		else if (key == 'i') {
-			styleblit_main.decThreshold();
-		}
-		else if (key == 'o') {
-			styleblit_main.incThreshold();
-		}
-		if (cv::waitKey(10) == 27) break;
 	}
 	
 	return 0;

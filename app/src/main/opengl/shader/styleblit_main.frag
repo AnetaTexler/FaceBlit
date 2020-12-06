@@ -50,7 +50,7 @@ vec2 RandomJitterTable(vec2 uv)
 vec2 SeedPoint(vec2 p,float h)
 {
   vec2 b = floor(p/h);
-  return floor(h*b);
+  // return floor(h*b);
   vec2 j = RandomJitterTable(b);  
   return floor(h*(b+j));
 }
@@ -84,10 +84,19 @@ vec2 lookUp( vec2 position ) {
     return tex;
 }
 
-void main() {
-  /*  fragColor = texture(targetPosGuide, texCoord_v);
-    return;*/
+float frac(float x) { return x-floor(x); }
 
+vec4 pack(vec2 xy)
+{
+  float x = xy.x/255.0;
+  float y = xy.y/255.0;
+  return vec4(frac(x),floor(x)/255.0,
+              frac(y),floor(y)/255.0);
+}
+
+
+void main() {
+  
   vec2 p = gl_FragCoord.xy-vec2(0.5,0.5);
   vec2 o = lookUp(p);
   vec2 best_q = p;
@@ -108,26 +117,7 @@ void main() {
     }
   }
 
-  
-  fragColor = texture(targetAppGuide, texCoord_v);
-  vec2 final_normalized = vec2( o.x / float(width), o.y / float(height) );
-  // fragColor = vec4(final_normalized,0.0f,1.0f);
-  fragColor = texture(styleImg, final_normalized);
-  // gl_FragColor = pack(o);
-  // fragColor = vec4(0.0f,1.0f,0.0f,1.0f);
-  // fragColor = vec4(lookUp(p) / 1024,0.0f,1.0f);
-  // vec2 lut_norm = vec2( lookUp(p).x / 728, lookUp(p).y / 1024 );
-  // fragColor = texture(styleImg, lut_norm);
-
-  // fragColor = vec4(0.0f,texture(jitterTable, texCoord_v).g,0.0f,1.0f);
-  
  
-  /*vec2 guide_pos = texture(stylePosGuide, texCoord_v).rg;
-  guide_pos = vec2(guide_pos.r, 1.0f - guide_pos.g);
-  fragColor = texture(styleImg, guide_pos);*/
-  best_q = vec2(best_q.x / width, best_q.y / height);
-  // fragColor = vec4(best_q,0.0f,1.0f);
-  // fragColor = vec4(rand(best_q*3),rand(best_q*5), rand(best_q*7),1.0f);
-  // fragColor = vec4(e/300,e/300,e/300,1.0f);
-  // fragColor = vec4(abs(guide_pos - texCoord_v)*100.0f,0.0f,1.0f);
+  fragColor = pack(o);
+ 
 }

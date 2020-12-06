@@ -198,6 +198,29 @@ void FB_OpenGL::StyblitRenderer::draw() {
 	glUseProgram(0);
 }
 
+void FB_OpenGL::StyblitBlender::draw() {
+	shader->useProgram();
+
+	glBindVertexArray(vertexArrayObject);
+
+	// Texture handling
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, *(NNFID));
+	glUniform1i(shader->getNNFLocation(), 0);
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, *(styleImgID));
+	glUniform1i(shader->getStyleImgLocation(), 1);
+
+	glUniform1i(shader->getWidthLocation(), width);
+	glUniform1i(shader->getHeightLocation(), height);
+
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	glBindVertexArray(0);
+
+	glUseProgram(0);
+}
+
 const char* GetGLErrorStr(GLenum err)
 {
 	switch (err)
@@ -375,4 +398,54 @@ void FB_OpenGL::updateTexture(GLint texture, cv::Mat image) {
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 
+}
+
+bool FB_OpenGL::makeFrameBuffer(GLsizei width, GLsizei height, GLuint& frame_buffer, GLuint& render_buffer_depth_stencil, GLuint& tex_color_buffer) {
+	// Create and bind the frame buffer.
+	glGenFramebuffers(1, &frame_buffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, frame_buffer);
+
+	// Create texture where we are going to bulk the contents of the frame buffer.
+	glGenTextures(1, &tex_color_buffer);
+	glBindTexture(GL_TEXTURE_2D, tex_color_buffer);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	// Attach the image to the framebuffer
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex_color_buffer, 0); // The second parameter implies that you can have multiple color attachments. A fragment shader can output
+																									  // different data to any of these by linking 'out' variables to attachments with the glBindFragDataLocation function.
+
+	// Create the render buffer to host the depth and stencil buffers.
+	// Although we could do this by creating another texture, it is more efficient to store these buffers in a Renderbuffer Object, because we're only interested in reading the color buffer in a shader.
+	glGenRenderbuffers(1, &render_buffer_depth_stencil);
+	glBindRenderbuffer(GL_RENDERBUFFER, render_buffer_depth_stencil);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+
+	// Attach the render buffer to the framebuffer
+	// NOTE: Even if you don't plan on reading from this depth_attachment, an off screen buffer that will be rendered to should have a depth attachment
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, render_buffer_depth_stencil);
+
+	// Check whether the frame buffer is complete (at least one buffer attached, all attachmentes are complete, all attachments same number multisamples)
+	(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE) ? std::cout << "The frame buffer is complete!" << std::endl : std::cout << "The frame buffer is invalid, please re-check. Code: " << glCheckFramebufferStatus(frame_buffer) << std::endl;
+
+	return true;
+}
+
+cv::Mat FB_OpenGL::get_ocv_img_from_gl_img(GLuint ogl_texture_id)
+{
+	glBindTexture(GL_TEXTURE_2D, ogl_texture_id);
+	GLenum gl_texture_width, gl_texture_height;
+
+	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, (GLint*)&gl_texture_width);
+	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, (GLint*)&gl_texture_height);
+
+	unsigned char* gl_texture_bytes = (unsigned char*)malloc(sizeof(unsigned char) * gl_texture_width * gl_texture_height * 3);
+	glGetTexImage(GL_TEXTURE_2D, 0 /* mipmap level */, GL_BGR, GL_UNSIGNED_BYTE, gl_texture_bytes);
+
+	cv::Mat image = cv::Mat(gl_texture_height, gl_texture_width, CV_8UC3, gl_texture_bytes);
+	cv::flip(image, image, 0); // OpenCV stores top to bottom, but we need the image bottom to top for OpenGL.
+
+	return image;
 }

@@ -45,6 +45,9 @@ namespace FB_OpenGL {
 	void updateTexture(GLint texture, cv::Mat image);
 	GLuint make3DTexture(cv::Mat cube);
 
+	bool makeFrameBuffer(GLsizei width, GLsizei height, GLuint& frame_buffer, GLuint& render_buffer_depth_stencil, GLuint& tex_color_buffer);
+	cv::Mat get_ocv_img_from_gl_img(GLuint ogl_texture_id);
+
 
 	class FullScreenQuad {
 	public:
@@ -120,6 +123,31 @@ namespace FB_OpenGL {
 		int width;
 		int height;
 		float threshold = 50.0f;
+	};
+
+	class StyblitBlender : public FullScreenQuad {
+	public:
+		StyblitBlender() {}
+		StyblitBlender(Shader* _shader) : FullScreenQuad(_shader) {}
+		~StyblitBlender() {}
+
+		virtual void draw();
+
+		void setWidthHeight(int _width, int _height) { width = _width; height = _height; }
+
+		void setTextures(GLuint* _NNFID,
+			GLuint* _styleImgID) {
+			NNFID = _NNFID;
+			styleImgID = _styleImgID;
+		}
+
+	protected:
+		GLuint* NNFID = NULL;
+		GLuint* styleImgID = NULL;
+
+		int width;
+		int height;
+		
 	};
 
 };

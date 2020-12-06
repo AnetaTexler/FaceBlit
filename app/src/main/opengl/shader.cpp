@@ -160,6 +160,7 @@ bool FB_OpenGL::Shader::init() {
 	jitterTableLocation = glGetUniformLocation(program, "jitterTable");
 
 	thresholdLocation = glGetUniformLocation(program, "threshold");
+	NNFLocation = glGetUniformLocation(program, "NNF");
 
 	std::cout << "Shader init successful" << std::endl;
 	return true;

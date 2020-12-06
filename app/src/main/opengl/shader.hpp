@@ -43,6 +43,7 @@ namespace FB_OpenGL {
 			GLint getLUTLocation() { return LUTLocation; }
 			GLint getJitterTableLocation() { return jitterTableLocation; }
 			GLint getThresholdLocation() { return thresholdLocation; }
+			GLint getNNFLocation() { return NNFLocation;}
 
 			GLuint getUseTextureLocation() { return useTextureLocation; }
 			GLuint getPVMmatrixLocation() { return PVMmatrixLocation; }
@@ -82,6 +83,7 @@ namespace FB_OpenGL {
 			GLint LUTLocation;
 			GLint jitterTableLocation;
 			GLint thresholdLocation;
+			GLint NNFLocation;
 	};
 
 };
