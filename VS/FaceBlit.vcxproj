@@ -33,6 +33,7 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\app\src\main\cpp\cartesian_coordinate_system_helper.h" />
     <ClInclude Include="..\app\src\main\cpp\common_utils.h" />
     <ClInclude Include="..\app\src\main\cpp\dlib_detector.h" />
     <ClInclude Include="..\app\src\main\cpp\facemark_detector.h" />
@@ -179,7 +180,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>lib/opencv_world450.lib;lib/SDL2.lib;lib/SDL2main.lib;lib/glew32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opencv_world450.lib;SDL2.lib;SDL2main.lib;glew32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

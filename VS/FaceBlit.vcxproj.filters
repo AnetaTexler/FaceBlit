@@ -89,6 +89,9 @@
     <ClInclude Include="..\app\src\main\cpp\style_transfer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+	<ClInclude Include="..\app\src\main\cpp\cartesian_coordinate_system_helper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\app\src\main\opengl\opengl_main.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
