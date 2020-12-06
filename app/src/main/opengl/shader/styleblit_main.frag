@@ -8,7 +8,7 @@ uniform highp sampler2D styleAppGuide;
 uniform highp sampler2D targetAppGuide;
 uniform highp sampler2D styleImg;
 uniform highp sampler2D jitterTable;
-uniform usampler3D LUT;
+uniform highp usampler3D LUT;
 
 // Only works when source and target are of the same size.
 uniform int width;
@@ -17,9 +17,13 @@ uniform int height;
 in vec2 texCoord_v;
 out vec4 fragColor;
 
-float threshold = 50.0f/255.0f;
-int lambdaPos = 10; 
-int lambdaApp = 2;
+uniform float threshold;
+float lambdaPos = 10.0; 
+float lambdaApp = 1.2;
+
+float rand(vec2 co){
+    return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+}
 
 bool inside(vec2 uv)
 {
@@ -27,15 +31,15 @@ bool inside(vec2 uv)
 }
 
 float getTargetGuide(vec2 position) {
-    vec2 pos_normalized = vec2( position.x / width, 1.0 - (float(position.y) / float(height)) );
-    vec3 total_guide = lambdaPos * texture(targetPosGuide, pos_normalized).rgb + lambdaApp * texture(targetAppGuide, pos_normalized).rgb;
-    return (total_guide.x + total_guide.y + total_guide.z);
+    vec2 pos_normalized = vec2( position.x / width, (float(position.y) / float(height)) );
+    vec2 total_guide = lambdaPos * texture(targetPosGuide, pos_normalized).rg + lambdaApp * texture(targetAppGuide, pos_normalized).r;
+    return (total_guide.x + total_guide.y);
 }
 
 float getStyleGuide(vec2 position) {
-    vec2 pos_normalized = vec2( position.x / width, 1.0 - (float(position.y) / float(height)) );
-    vec3 total_guide =  lambdaPos * texture(stylePosGuide, pos_normalized).rgb + lambdaApp * texture(styleAppGuide, pos_normalized).rgb;
-    return (total_guide.x + total_guide.y + total_guide.z);
+    vec2 pos_normalized = vec2( position.x / width, (float(position.y) / float(height)) );
+    vec2 total_guide =  lambdaPos * texture(stylePosGuide, pos_normalized).rg + lambdaApp * texture(styleAppGuide, pos_normalized).r;
+    return (total_guide.x + total_guide.y);
 }
 
 vec2 RandomJitterTable(vec2 uv)
@@ -46,6 +50,7 @@ vec2 RandomJitterTable(vec2 uv)
 vec2 SeedPoint(vec2 p,float h)
 {
   vec2 b = floor(p/h);
+  return floor(h*b);
   vec2 j = RandomJitterTable(b);  
   return floor(h*(b+j));
 }
@@ -85,21 +90,26 @@ void main() {
 
   vec2 p = gl_FragCoord.xy-vec2(0.5,0.5);
   vec2 o = lookUp(p);
+  vec2 best_q = p;
 
+  float e = 0;
   for(int level=6;level>=0;level--)
   {
     vec2 q = NearestSeed(p,pow(2.0,float(level)));
     vec2 u = lookUp(q);
     
-    float e = (abs(getTargetGuide(p)-getStyleGuide(u+(p-q))))*255.0;
+    e = (abs(getTargetGuide(p)-getStyleGuide(u+(p-q))))*255.0;
     
     if (e<threshold)
     {
-      o = u+(p-q); if (inside(o)) { break; }
+      best_q = q;
+      o = u+(p-q); 
+      if (inside(o)) { break; }
     }
   }
 
-  // fragColor = texture(styleAppGuide, texCoord_v);
+  
+  fragColor = texture(targetAppGuide, texCoord_v);
   vec2 final_normalized = vec2( o.x / float(width), o.y / float(height) );
   // fragColor = vec4(final_normalized,0.0f,1.0f);
   fragColor = texture(styleImg, final_normalized);
@@ -112,8 +122,12 @@ void main() {
   // fragColor = vec4(0.0f,texture(jitterTable, texCoord_v).g,0.0f,1.0f);
   
  
-  /*vec2 guide_pos = texture(targetPosGuide, texCoord_v).rg;
+  /*vec2 guide_pos = texture(stylePosGuide, texCoord_v).rg;
   guide_pos = vec2(guide_pos.r, 1.0f - guide_pos.g);
   fragColor = texture(styleImg, guide_pos);*/
+  best_q = vec2(best_q.x / width, best_q.y / height);
+  // fragColor = vec4(best_q,0.0f,1.0f);
+  // fragColor = vec4(rand(best_q*3),rand(best_q*5), rand(best_q*7),1.0f);
+  // fragColor = vec4(e/300,e/300,e/300,1.0f);
   // fragColor = vec4(abs(guide_pos - texCoord_v)*100.0f,0.0f,1.0f);
 }

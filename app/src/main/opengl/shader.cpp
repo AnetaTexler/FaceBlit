@@ -159,6 +159,8 @@ bool FB_OpenGL::Shader::init() {
 	LUTLocation = glGetUniformLocation(program, "LUT");
 	jitterTableLocation = glGetUniformLocation(program, "jitterTable");
 
+	thresholdLocation = glGetUniformLocation(program, "threshold");
+
 	std::cout << "Shader init successful" << std::endl;
 	return true;
 };

@@ -988,7 +988,7 @@ int main() {
 		// Save frame to video
 		out << alphaBlendResult;*/
 
-		// Window::imgShow("Result", alphaBlendResult);
+		Window::imgShow("Result", targetPosGuide);
 
 		i++;
 
@@ -1032,6 +1032,19 @@ int main() {
 		styleblit_main.draw();
 
 		SDL_GL_SwapWindow(globalOpenglData.mainWindow);
+
+		int key = cv::waitKey(10);
+		if (key == 27) {
+			break;
+
+		}
+		else if (key == 'i') {
+			styleblit_main.decThreshold();
+		}
+		else if (key == 'o') {
+			styleblit_main.incThreshold();
+		}
+		if (cv::waitKey(10) == 27) break;
 	}
 	
 	return 0;

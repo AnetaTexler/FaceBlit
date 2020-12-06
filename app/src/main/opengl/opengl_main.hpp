@@ -105,6 +105,9 @@ namespace FB_OpenGL {
 			jitterTableID = _jitterTableID;
 		}
 
+		void incThreshold() { threshold++; std::cout << threshold << std::endl; };
+		void decThreshold() { threshold--; std::cout << threshold << std::endl; };
+
 	protected:
 		GLuint* stylePosGuideTextureID = NULL;
 		GLuint* targetPosGuideTextureID = NULL;
@@ -116,6 +119,7 @@ namespace FB_OpenGL {
 
 		int width;
 		int height;
+		float threshold = 50.0f;
 	};
 
 };
