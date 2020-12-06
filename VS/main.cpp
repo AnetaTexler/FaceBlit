@@ -14,7 +14,7 @@
 #include <filesystem>
 #include <opencv2/core.hpp>
 
-
+#include <opengl_main.hpp>
 
 
 cv::Mat alphaBlendTransparentBG(cv::Mat foreground, cv::Mat alphaMask)
@@ -137,7 +137,7 @@ void createInputImages_LVLS2(const cv::Mat& style, cv::Mat& style_base_only, cv:
 // ############################################################################
 // #							VIDEO STYLIZATION							  #
 // ############################################################################
-int main()
+int xmain()
 {
 	// *** PARAMETERS TO SET ***********************************************************************************************************
 	const std::string root = "C:\\Users\\Aneta\\Desktop\\videos";
@@ -837,7 +837,191 @@ int xxmain()
 }
 
 
+int main() {
+	// Don't forget to change this path before you start.
+	const std::string root = "C:\\Work\\TestDataset\\Videos";
+	//const std::string root = std::filesystem::current_path().string();
 
+	std::string styleName = "watercolorgirl.png";			// name of a style image from dir root/styles with extension
+	std::string videoName = "target6.mp4";					// name of a target video with extension
+	const int NNF_patchsize = 1;							// voting patch size (0 for no voting)
+	const bool transparentBG = false;						// choice of background (true = transparent bg, false = target image bg)
+	//const bool frontCamera = true;							// camera facing
+	// *********************************************************************************************************************************
+
+	std::string styleNameNoExtension = styleName.substr(0, styleName.find_last_of("."));
+
+	// --- READ STYLE FILES --------------------------------------------------
+	cv::Mat styleImg = cv::imread(root + "\\styles\\" + styleName);
+	std::ifstream styleLandmarkFile(root + "\\styles\\" + styleNameNoExtension + "_lm.txt");
+	std::string styleLandmarkStr((std::istreambuf_iterator<char>(styleLandmarkFile)), std::istreambuf_iterator<char>());
+	styleLandmarkFile.close();
+	cv::Mat lookUpCube = loadLookUpCube(root + "\\styles\\" + styleNameNoExtension + "_lut.bytes");
+	// -----------------------------------------------------------------------
+	cv::Mat stylePosGuide = getGradient(styleImg.cols, styleImg.rows, false); // G_pos
+
+	cv::Mat styleAppGuide = getAppGuide(styleImg, true); // G_app
+	std::vector<cv::Point2i> styleLandmarks = getLandmarkPointsFromString(styleLandmarkStr.c_str());
+
+	// Add 2 landmarks into the bottom corners - to prevent the body moving during MLS deformation
+	styleLandmarks.push_back(cv::Point2i(0, styleImg.rows)); // left bottom corner
+	styleLandmarks.push_back(cv::Point2i(styleImg.cols, styleImg.rows)); // right bottom corner
+
+	// Open a video file
+	cv::VideoCapture cap(root + "\\" + videoName);
+	if (!cap.isOpened()) {
+		std::cout << "Unable to open the video." << std::endl;
+		system("pause");
+		return 1;
+	}
+
+	// Get the width/height and the FPS of the video
+	int width = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_WIDTH));
+	int height = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_HEIGHT));
+	double FPS = cap.get(cv::CAP_PROP_FPS) / 2;
+
+	// Create output directory
+	std::string outputDirPath = root + "\\out_" + videoName.substr(0, videoName.find_last_of(".")) + "\\" + styleNameNoExtension + "_" + std::to_string(NNF_patchsize) + "nnf_" + std::to_string((int)std::ceil(FPS)) + "fps";
+	makeDir(outputDirPath);
+
+	// Open a video file for writing (the MP4V codec works on OS X and Windows)
+	cv::VideoWriter out(outputDirPath + "\\result.mp4", cv::VideoWriter::fourcc('m', 'p', '4', 'v'), FPS, cv::Size(styleImg.cols, styleImg.rows));
+	if (!out.isOpened()) {
+		std::cout << "Error! Unable to open video file for output." << std::endl;
+		system("pause");
+		return 1;
+	}
+
+	// Load facemark models
+	//FacemarkDetector faceDetector("facemark_models\\lbpcascade_frontalface.xml", 1.1, 3, "facemark_models\\lbf_landmarks.yaml");
+	DlibDetector faceDetector("facemark_models\\shape_predictor_68_face_landmarks.dat");
+	std::pair<cv::Rect, std::vector<cv::Point2i>> faceDetResult; // face and its landmarks
+	std::vector<cv::Point2i> targetLandmarks;
+
+	cv::Mat frame;
+	int i = 0;
+
+	// *********************************************************************************************************************************
+	// OPENGL INITIALIZATION
+	if (!FB_OpenGL::init()) {
+		std::cout << "Something is wrong!" << std::endl;
+		return -1;
+	}
+
+	FB_OpenGL::Shader debug_shader = FB_OpenGL::Shader("..\\app\\src\\main\\opengl\\shader\\pass_tex.vert", "..\\app\\src\\main\\opengl\\shader\\pass_tex.frag");
+	FB_OpenGL::Shader styleblit_shader = FB_OpenGL::Shader("..\\app\\src\\main\\opengl\\shader\\pass_tex.vert", "..\\app\\src\\main\\opengl\\shader\\styleblit_main.frag");
+	FB_OpenGL::Shader blending_shader = FB_OpenGL::Shader("..\\app\\src\\main\\opengl\\shader\\pass_tex.vert", "..\\app\\src\\main\\opengl\\shader\\styleblit_blend.frag");
+	debug_shader.init();
+	styleblit_shader.init();
+	blending_shader.init();
+
+	FB_OpenGL::StyblitBlender quad = FB_OpenGL::StyblitBlender(&blending_shader);
+	FB_OpenGL::StyblitRenderer styleblit_main = FB_OpenGL::StyblitRenderer(&styleblit_shader);
+	styleblit_main.setWidthHeight( styleImg.cols, styleImg.rows);
+	quad.setWidthHeight(styleImg.cols, styleImg.rows);
+
+	//GLuint quad_texture = FB_OpenGL::makeTexture(styleImg);
+	//quad.setTextureID( &quad_texture );
+
+	// ************************ OPENGL VARIABLES ******************
+	GLuint stylePosGuide_texture = 0;
+	GLuint targetPosGuide_texture = 0;
+	GLuint styleAppGuide_texture = 0;
+	GLuint targetAppGuide_texture = 0;
+	GLuint styleImg_texture = 0;
+	GLuint lookUpTableTexture = FB_OpenGL::make3DTexture(lookUpCube);
+
+	// Setup framebuffer for styleblit to make it render to a texture which we can further process.
+	GLuint styleblit_frame_buffer;
+	GLuint styleblit_render_buffer_depth_stencil;
+	GLuint styleblit_tex_color_buffer;
+	FB_OpenGL::makeFrameBuffer(globalOpenglData.w_width, globalOpenglData.w_height, styleblit_frame_buffer, styleblit_render_buffer_depth_stencil, styleblit_tex_color_buffer);
+
+	quad.setTextures(&styleblit_tex_color_buffer, &styleImg_texture);
+	// GLuint frame_as_texture = 0;
+
+	// Generate jitter table
+	cv::Mat gaussian_noise = cv::Mat::zeros(styleImg.rows, styleImg.cols, CV_8UC2);
+	cv::randu(gaussian_noise, 0, 255);
+	
+	GLuint jitter_table_texture = FB_OpenGL::makeJitterTable(gaussian_noise.clone());
+	styleblit_main.setJitterTable(&jitter_table_texture);
+
+	while (true) {
+		cap >> frame;
+		if (frame.empty()) {
+			std::cout << "No more frames." << std::endl;
+			break;
+		}
+
+		if (i % 2 == 1) // skip odd frames when we want the half FPS (not in case of target12!!!)
+		{
+			i++;
+			continue;
+		}
+
+		faceDetector.detectFacemarks(frame, faceDetResult);
+		targetLandmarks = faceDetResult.second;
+
+		alignTargetToStyle(frame, targetLandmarks, styleLandmarks);
+
+		targetLandmarks.push_back(cv::Point2i(0, frame.rows)); // left bottom corner
+		targetLandmarks.push_back(cv::Point2i(frame.cols, frame.rows)); // right bottom corner
+
+		cv::Mat faceMask = getSkinMask(frame, targetLandmarks);
+
+		// Generate target guidance channels
+		cv::Mat targetPosGuide = MLSDeformation(stylePosGuide, styleLandmarks, targetLandmarks); // G_pos
+		cv::Mat targetAppGuide = getAppGuide(frame, false); // G_app
+		targetAppGuide = grayHistMatching(targetAppGuide, styleAppGuide);
+
+		i++;
+
+		// Make the Opencv Mat images into OpenGL accepted textures. On the 1st frame create the textures from scratch, after that we only need to update them to save memory.
+		if (i > 2) {
+			FB_OpenGL::updateTexture(targetPosGuide_texture, targetPosGuide.clone());
+			FB_OpenGL::updateTexture(targetAppGuide_texture, targetAppGuide.clone());
+		}
+		else {
+			stylePosGuide_texture = FB_OpenGL::makeTexture(stylePosGuide.clone());
+			targetPosGuide_texture = FB_OpenGL::makeTexture(targetPosGuide.clone());
+			styleAppGuide_texture = FB_OpenGL::makeTexture(styleAppGuide.clone());
+			targetAppGuide_texture = FB_OpenGL::makeTexture(targetAppGuide.clone());
+			styleImg_texture = FB_OpenGL::makeTexture(styleImg.clone());
+			styleblit_main.setTextures(&stylePosGuide_texture, &targetPosGuide_texture, &styleAppGuide_texture, &targetAppGuide_texture, &styleImg_texture, &lookUpTableTexture);
+		}
+
+		// Bind the StyleBlit framebuffer, which will make all operations render in a texture.
+		glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
+		glBindFramebuffer(GL_FRAMEBUFFER, styleblit_frame_buffer);
+		glDepthFunc(GL_ALWAYS);
+		glViewport(0, 0, globalOpenglData.w_width, globalOpenglData.w_height);
+		glEnable(GL_DEPTH_TEST);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		styleblit_main.draw();
+
+		// Re-bind the default framebuffer.
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glDepthFunc(GL_ALWAYS);
+		glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+		glViewport(0, 0, globalOpenglData.w_width, globalOpenglData.w_height);
+		glEnable(GL_DEPTH_TEST);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		quad.draw();
+
+		SDL_GL_SwapWindow(globalOpenglData.mainWindow);
+
+		// Uncomment if you want to save the output NNF. Current implementation is leaking a bit, so be careful.
+		/*cv::Mat out_image = FB_OpenGL::get_ocv_img_from_gl_img(styleblit_tex_color_buffer);
+		out << out_image;
+		Window::imgShow("Result", out_image);*/
+
+	}
+	
+	return 0;
+}
 
 
 

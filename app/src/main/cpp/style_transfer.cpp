@@ -223,9 +223,9 @@ void alignTargetToStyle(cv::Mat& targetImg, std::vector<cv::Point2i>& targetLand
 
 cv::Mat getGradient(int width, int height, bool drawGrid)
 {
-	cv::Mat gradientImg(height, width, CV_8UC3);
-	float widthNorm = 256.0 / width;
-	float heightNorm = 256.0 / height;
+	cv::Mat gradientImg(height, width, CV_16UC3);
+	double widthNorm = 256.0 * 256.0 / width;
+	double heightNorm = 256.0 * 256.0 / height;
 
 	for (int row = 0; row < gradientImg.rows; row++)
 	{
@@ -234,7 +234,7 @@ cv::Mat getGradient(int width, int height, bool drawGrid)
 			if (drawGrid && ((row > 1 && row % GRID_SIZE == 0) || (col > 1 && col % GRID_SIZE == 0)))
 				gradientImg.at<cv::Vec3b>(row, col) = cv::Vec3b(255, 255, 255);
 			else
-				gradientImg.at<cv::Vec3b>(row, col) = cv::Vec3b(0, row * heightNorm, col * widthNorm); // BGR - increasing red right and green down, no blue
+				gradientImg.at<cv::Vec3w>(row, col) = cv::Vec3w(0, row * heightNorm, col * widthNorm); // BGR - increasing red right and green down, no blue
 		}
 	}
 
