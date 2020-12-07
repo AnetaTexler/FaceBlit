@@ -22,6 +22,11 @@ vec2 unpack(vec4 rgba)
 }
 
 void main() {
+  // Uncomment to make the shader to just display the NNF texture. 
+  // Useful if you want to display some visualization from the previous shader.
+  /*fragColor = texture(NNF, texCoord_v);
+  return;*/
+
   vec2 xy = gl_FragCoord.xy;
 
   vec4 sumColor = vec4(0.0,0.0,0.0,0.0);

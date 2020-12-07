@@ -50,7 +50,7 @@ vec2 RandomJitterTable(vec2 uv)
 vec2 SeedPoint(vec2 p,float h)
 {
   vec2 b = floor(p/h);
-  // return floor(h*b);
+  // return floor(h*b); // Uncomment to disable jitter table.
   vec2 j = RandomJitterTable(b);  
   return floor(h*(b+j));
 }
@@ -117,6 +117,9 @@ void main() {
     }
   }
 
+  // Uncomment to visualize chunks.
+  /*fragColor = vec4(rand(best_q*3.0),rand(best_q*5.0),rand(best_q*7.0),1.0f);
+  return;*/
  
   fragColor = pack(o);
  
