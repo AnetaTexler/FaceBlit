@@ -223,9 +223,9 @@ void alignTargetToStyle(cv::Mat& targetImg, std::vector<cv::Point2i>& targetLand
 
 cv::Mat getGradient(int width, int height, bool drawGrid)
 {
-	cv::Mat gradientImg(height, width, CV_16UC3);
-	double widthNorm = 256.0 * 256.0 / width;
-	double heightNorm = 256.0 * 256.0 / height;
+	cv::Mat gradientImg(height, width, CV_8UC3);
+	float widthNorm = 256.0 / width;
+	float heightNorm = 256.0 / height;
 
 	for (int row = 0; row < gradientImg.rows; row++)
 	{
@@ -234,7 +234,7 @@ cv::Mat getGradient(int width, int height, bool drawGrid)
 			if (drawGrid && ((row > 1 && row % GRID_SIZE == 0) || (col > 1 && col % GRID_SIZE == 0)))
 				gradientImg.at<cv::Vec3b>(row, col) = cv::Vec3b(255, 255, 255);
 			else
-				gradientImg.at<cv::Vec3w>(row, col) = cv::Vec3w(0, row * heightNorm, col * widthNorm); // BGR - increasing red right and green down, no blue
+				gradientImg.at<cv::Vec3b>(row, col) = cv::Vec3b(0, row * heightNorm, col * widthNorm); // BGR - increasing red right and green down, no blue
 		}
 	}
 
@@ -601,7 +601,7 @@ cv::Mat getLookUpCube(const cv::Mat& stylePosGuide, const cv::Mat& styleAppGuide
 				//}
 
 				int minError = INT_MAX;
-				const int radius = 20; // radius of searching
+				const int radius = 100; // radius of searching
 				for (int row = MAX(0, seedRow - radius); row < MIN(stylePosGuide.rows, seedRow + radius); row++)
 				{
 					for (int col = MAX(0, seedCol - radius); col < MIN(stylePosGuide.cols, seedCol + radius); col++)
@@ -1144,4 +1144,22 @@ void chunkStatistics(const cv::Mat1i& coveredPixels)
 	}
 
 	std::cout << "Avg number of pixels per chunk: " << (620 * 420) / (float)acc.size() << std::endl;
+}
+
+
+void visualizeLookUpCube(const cv::Mat& lookUpCube, const std::string dirPath)
+{
+	cv::Mat cubeLayer(256, 256, CV_8UC3); 
+
+	for (int z = 0; z < 256; z++) // app
+	{
+		for (int x = 0; x < 256; x++) // pos red
+		{
+			for (int y = 0; y < 256; y++) // pos green
+			{
+				cubeLayer.at<cv::Vec3b>(x, y) = cv::Vec3b(0, lookUpCube.at<cv::Vec2w>(x, y, z).val[0] / 3, lookUpCube.at<cv::Vec2w>(x, y, z).val[1] / 4);
+			}
+		}
+		cv::imwrite(dirPath + "\\app" + std::string(3 - std::to_string(z).length(), '0') + std::to_string(z) + ".png", cubeLayer);
+	}
 }

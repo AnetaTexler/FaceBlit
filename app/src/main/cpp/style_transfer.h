@@ -27,6 +27,7 @@ void boxSeedGrow(int rowT, int colT, cv::Point2i styleSeedPoint, int boxSize, co
 void DFSSeedGrow(cv::Point2i targetSeedPoint, cv::Point2i styleSeedPoint, const cv::Mat& stylePosGuide, const cv::Mat& targetPosGuide, const cv::Mat& styleAppGuide, const cv::Mat& targetAppGuide, cv::Mat& resultImg, const cv::Mat& styleImg, cv::Mat1i& coveredPixels, int chunkNumber, const int threshold, const int lambdaPos, const int lambdaApp);
 void visualizeChunks(const cv::Mat1i& coveredPixels);
 void chunkStatistics(const cv::Mat1i& coveredPixels);
+void visualizeLookUpCube(const cv::Mat& lookUpCube, const std::string dirPath);
 bool pixelOutOfImageRange(cv::Point2i stylePixel, cv::Point2i targetPixel, const cv::Mat& image);
 bool pixelIsNotCovered(cv::Point2i pixel, const cv::Mat1i& coveredPixels);
 
