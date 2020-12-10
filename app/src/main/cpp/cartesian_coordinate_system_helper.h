@@ -6,6 +6,8 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include <cmath>
+#include <fstream>
+
 
 #define PI acos(-1.0)
 
@@ -292,6 +294,20 @@ public:
 
 		if (!path.empty())
 			cv::imwrite(path, targetImg);
+	}
+
+
+	static void savePointsIntoFile(const std::vector<cv::Point>& points, const std::string path)
+	{
+		std::ofstream file(path);
+		if (file.is_open())
+		{
+			for (cv::Point point : points)
+				file << std::to_string(point.x) << " " << std::to_string(point.y) << std::endl;
+			file.close();
+		}
+		else 
+			Log_e("FACEBLIT", "Unable to open file to write points.");
 	}
 
 };
