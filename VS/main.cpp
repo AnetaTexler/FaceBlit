@@ -917,6 +917,8 @@ int main() {
 
 	FB_OpenGL::StyblitBlender quad = FB_OpenGL::StyblitBlender(&blending_shader);
 	FB_OpenGL::StyblitRenderer styleblit_main = FB_OpenGL::StyblitRenderer(&styleblit_shader);
+	FB_OpenGL::Grid grid = FB_OpenGL::Grid(20,20,&debug_shader);
+
 	styleblit_main.setWidthHeight( styleImg.cols, styleImg.rows);
 	quad.setWidthHeight(styleImg.cols, styleImg.rows);
 
@@ -939,6 +941,7 @@ int main() {
 
 	quad.setTextures(&styleblit_tex_color_buffer, &styleImg_texture);
 	// GLuint frame_as_texture = 0;
+	grid.setTextureID(&styleImg_texture);
 
 	// Generate jitter table
 	cv::Mat gaussian_noise = cv::Mat::zeros(styleImg.rows, styleImg.cols, CV_8UC2);
@@ -963,7 +966,7 @@ int main() {
 		faceDetector.detectFacemarks(frame, faceDetResult);
 		targetLandmarks = faceDetResult.second;
 
-		alignTargetToStyle(frame, targetLandmarks, styleLandmarks);
+		// alignTargetToStyle(frame, targetLandmarks, styleLandmarks);
 
 		targetLandmarks.push_back(cv::Point2i(0, frame.rows)); // left bottom corner
 		targetLandmarks.push_back(cv::Point2i(frame.cols, frame.rows)); // right bottom corner
@@ -1010,6 +1013,7 @@ int main() {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		quad.draw();
+		// grid.draw(); // Draw grid with deformations.
 
 		SDL_GL_SwapWindow(globalOpenglData.mainWindow);
 

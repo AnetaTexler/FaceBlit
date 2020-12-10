@@ -138,6 +138,72 @@ FB_OpenGL::FullScreenQuad::FullScreenQuad(Shader* _shader) {
 	glUseProgram(0);
 }
 
+FB_OpenGL::Grid::Grid(int x_count, int y_count, Shader* _shader) {
+	shader = _shader;
+
+	glGenVertexArrays(1, &vertexArrayObject);
+	glBindVertexArray(vertexArrayObject);
+
+	float x_spacing = 1.0f / float(x_count - 1);
+	float y_spacing = 1.0f / float(y_count - 1);
+
+	std::vector<float> vertices_local;
+	std::vector<float> vertices_uv_local;
+	std::vector<unsigned short> triangle_indices;
+
+	for (int y = 0; y < y_count; y++)
+	{
+		for (int x = 0; x < x_count; x++)
+		{
+			vertices_local.push_back((x * x_spacing)* 2.0f - 1.0f);
+			vertices_local.push_back((y * y_spacing)* 2.0f - 1.0f);
+
+			vertices_uv_local.push_back(x * x_spacing);
+			vertices_uv_local.push_back(y * y_spacing);
+		}
+	}
+
+	numTriangles = 0;
+	for (int y = 0; y < y_count-1; y++) // for every grid row.
+	{
+		for (int x = 0; x < x_count-1; x++) // for every column.
+		{
+			triangle_indices.push_back(x + x_count*y);
+			triangle_indices.push_back(x+1 + x_count * y);
+			triangle_indices.push_back(x+x_count + x_count * y);
+
+			triangle_indices.push_back(x + 1 + x_count * y);
+			triangle_indices.push_back(x + x_count + x_count * y);
+			triangle_indices.push_back(x + x_count + 1 + x_count * y);
+
+			numTriangles += 2;
+		}
+	}
+
+	glGenBuffers(1, &vertexBufferObject);
+	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject);
+	glBufferData(GL_ARRAY_BUFFER, vertices_local.size() * sizeof(float), &vertices_local[0], GL_DYNAMIC_DRAW);
+	glEnableVertexAttribArray(_shader->getPosLocation());
+	glVertexAttribPointer(_shader->getPosLocation(), 2, GL_FLOAT, GL_FALSE, 0, 0);
+
+	vertices = vertices_local;
+	un_short = false;
+
+	glGenBuffers(1, &uvbuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
+	glBufferData(GL_ARRAY_BUFFER, vertices_uv_local.size() * sizeof(float), &vertices_uv_local[0], GL_STATIC_DRAW);
+	glEnableVertexAttribArray(_shader->getTexCoordLocation());
+	glVertexAttribPointer(_shader->getTexCoordLocation(), 2, GL_FLOAT, GL_FALSE, 0, 0);
+
+	glGenBuffers(1, &elementBufferObject);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBufferObject);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, triangle_indices.size() * sizeof(unsigned short), &triangle_indices[0], GL_STATIC_DRAW);
+
+
+	glBindVertexArray(0);
+	glUseProgram(0);
+}
+
 void FB_OpenGL::FullScreenQuad::draw() {
 	shader->useProgram();
 
@@ -149,6 +215,25 @@ void FB_OpenGL::FullScreenQuad::draw() {
 	glUniform1i(shader->getTexSamplerLocation(), 0);
 
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	glBindVertexArray(0);
+
+	glUseProgram(0);
+}
+
+void FB_OpenGL::Grid::draw() {
+	shader->useProgram();
+
+	glBindVertexArray(vertexArrayObject);
+
+	// Texture handling
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, *(textureID));
+	glUniform1i(shader->getTexSamplerLocation(), 0);
+
+	// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	// glLineWidth(3);
+	glDrawElements(GL_TRIANGLES, numTriangles * 3, GL_UNSIGNED_SHORT, 0);
+	// glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glBindVertexArray(0);
 
 	glUseProgram(0);

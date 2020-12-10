@@ -89,7 +89,7 @@
     <ClInclude Include="..\app\src\main\cpp\style_transfer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-	<ClInclude Include="..\app\src\main\cpp\cartesian_coordinate_system_helper.h">
+    <ClInclude Include="..\app\src\main\cpp\cartesian_coordinate_system_helper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\app\src\main\opengl\opengl_main.hpp">
@@ -110,6 +110,9 @@
       <Filter>Source Files\Shaders</Filter>
     </None>
     <None Include="..\app\src\main\opengl\shader\styleblit_blend.frag">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="..\app\src\main\opengl\shader\pass_yellow.frag">
       <Filter>Source Files\Shaders</Filter>
     </None>
   </ItemGroup>

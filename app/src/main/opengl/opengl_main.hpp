@@ -55,7 +55,7 @@ namespace FB_OpenGL {
 		FullScreenQuad(Shader* _shader);
 		~FullScreenQuad() {}
 
-		void setTextureID(GLuint *_textureID) { textureID = _textureID; }
+		virtual void setTextureID(GLuint *_textureID) { textureID = _textureID; }
 		virtual void draw();
 
 	protected:
@@ -77,6 +77,21 @@ namespace FB_OpenGL {
 		bool un_short;
 
 		GLuint* textureID = NULL;
+
+	};
+
+	class Grid : public FullScreenQuad {
+	public:
+		Grid() {}
+		Grid(int x_count, int y_count, Shader* _shader);
+		~Grid() {}
+
+		virtual void draw();
+
+		GLuint uvbuffer;
+		std::vector<float> vertices;
+
+	protected:
 
 	};
 
