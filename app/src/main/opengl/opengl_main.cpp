@@ -138,14 +138,19 @@ FB_OpenGL::FullScreenQuad::FullScreenQuad(Shader* _shader) {
 	glUseProgram(0);
 }
 
-FB_OpenGL::Grid::Grid(int x_count, int y_count, Shader* _shader) {
+FB_OpenGL::Grid::Grid(int x_count, int y_count, float x_min, float x_max, float y_min, float y_max, Shader* _shader) {
 	shader = _shader;
 
 	glGenVertexArrays(1, &vertexArrayObject);
 	glBindVertexArray(vertexArrayObject);
 
-	float x_spacing = 1.0f / float(x_count - 1);
-	float y_spacing = 1.0f / float(y_count - 1);
+	/*float x_max = 1.0f;
+	float x_min = 0.0f;
+	float y_max = 1.0f;
+	float y_min = 0.0f;*/
+
+	float x_spacing = (x_max - x_min) / float(x_count - 1);
+	float y_spacing = (y_max - y_min) / float(y_count - 1);
 
 	std::vector<float> vertices_local;
 	std::vector<float> vertices_uv_local;
@@ -155,15 +160,15 @@ FB_OpenGL::Grid::Grid(int x_count, int y_count, Shader* _shader) {
 	{
 		for (int x = 0; x < x_count; x++)
 		{
-			vertices_local.push_back((x * x_spacing)* 2.0f - 1.0f);
-			vertices_local.push_back((y * y_spacing)* 2.0f - 1.0f);
+			vertices_local.push_back((x * x_spacing + x_min)* 2.0f - 1.0f);
+			vertices_local.push_back((y * y_spacing + y_min)* 2.0f - 1.0f);
 
-			vertices_uv_local.push_back(x * x_spacing);
-			vertices_uv_local.push_back(y * y_spacing);
+			vertices_uv_local.push_back(x * x_spacing + x_min);
+			vertices_uv_local.push_back(y * y_spacing + y_min);
 
 			VertexDeformInfo info;
-			info.x = (x * x_spacing) * 2.0f - 1.0f;
-			info.y = (y * y_spacing) * 2.0f - 1.0f;
+			info.x = (x * x_spacing + x_min) * 2.0f - 1.0f;
+			info.y = (y * y_spacing + y_min) * 2.0f - 1.0f;
 			vertexDeformations.push_back(info);
 		}
 	}

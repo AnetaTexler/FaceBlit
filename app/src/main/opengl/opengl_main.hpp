@@ -88,7 +88,7 @@ namespace FB_OpenGL {
 	class Grid : public FullScreenQuad {
 	public:
 		Grid() {}
-		Grid(int x_count, int y_count, Shader* _shader);
+		Grid(int x_count, int y_count, float x_min, float x_max, float y_min, float y_max, Shader* _shader);
 		~Grid() {}
 
 		virtual void draw();

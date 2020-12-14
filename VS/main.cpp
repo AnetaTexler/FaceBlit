@@ -872,6 +872,21 @@ int main() {
 	styleLandmarks.push_back(cv::Point2i(0, styleImg.rows)); // left bottom corner
 	styleLandmarks.push_back(cv::Point2i(styleImg.cols, styleImg.rows)); // right bottom corner
 
+	float x_max = 0.0f;
+	float y_max = 0.0f;
+	float x_min = 1.0f;
+	float y_min = 1.0f;
+
+	for (int k = 60; k < styleLandmarks.size(); ++k) {
+		float x = float(styleLandmarks[k].x) / styleImg.cols;
+		float y = -1.0f * (float(styleLandmarks[k].y) / styleImg.rows) + 1.0f;
+
+		if (x_max < x) x_max = x;
+		if (x_min > x) x_min = x;
+		if (y_max < y) y_max = y;
+		if (y_min > y) y_min = y;
+	}
+
 	// Open a video file
 	cv::VideoCapture cap(root + "\\" + videoName);
 	if (!cap.isOpened()) {
@@ -922,7 +937,7 @@ int main() {
 
 	FB_OpenGL::StyblitBlender quad = FB_OpenGL::StyblitBlender(&blending_shader);
 	FB_OpenGL::StyblitRenderer styleblit_main = FB_OpenGL::StyblitRenderer(&styleblit_shader);
-	FB_OpenGL::Grid grid = FB_OpenGL::Grid(20,20,&debug_shader);
+	FB_OpenGL::Grid grid = FB_OpenGL::Grid(10,20,x_min, x_max, y_min, y_max, &debug_shader);
 
 	styleblit_main.setWidthHeight( styleImg.cols, styleImg.rows);
 	quad.setWidthHeight(styleImg.cols, styleImg.rows);
@@ -968,6 +983,8 @@ int main() {
 		// grid.vertexDeformations[cp].fixed = true;
 		landmarkControlPointsIDs.push_back(cp);
 	}
+
+
 
 	/*int bot_left = grid.getNearestControlPointID(-1.0f,-1.0f); 
 	int bot_right = grid.getNearestControlPointID(1.0f, -1.0f);
@@ -1051,14 +1068,14 @@ int main() {
 		glEnable(GL_DEPTH_TEST);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		quad.draw();
+		// quad.draw();
 
 		CartesianCoordinateSystem::drawRainbowLandmarks(frame, targetLandmarks);
 		Window::imgShow("Result", frame);
 
 		// grid.vertexDeformations[150].x = sin(tm.elapsed_milliseconds() / 1000.0f);
 
-		grid.deformGrid(10);
+		grid.deformGrid(100);
 		grid.draw(); // Draw grid with deformations.
 
 		SDL_GL_SwapWindow(globalOpenglData.mainWindow);
