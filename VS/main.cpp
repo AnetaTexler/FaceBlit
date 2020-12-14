@@ -953,11 +953,19 @@ int main() {
 	TimeMeasure tm;
 	tm.reset();
 
-	int bot_left = grid.getNearestControlPointID(-1.0f,-1.0f); 
+	std::vector<int> landmarkControlPointsIDs;
+
+	for (auto landmark : styleLandmarks) {
+		int cp = grid.getNearestControlPointID( 2.0 * (float(landmark.x) / float(styleImg.cols)) - 1.0f, -1.0 * (2.0 * (float(landmark.y) / float(styleImg.rows)) - 1.0f));
+		grid.vertexDeformations[cp].fixed = true;
+		landmarkControlPointsIDs.push_back(cp);
+	}
+
+	/*int bot_left = grid.getNearestControlPointID(-1.0f,-1.0f); 
 	int bot_right = grid.getNearestControlPointID(1.0f, -1.0f);
 	grid.vertexDeformations[bot_left].fixed = true;
 	grid.vertexDeformations[bot_right].fixed = true;
-	grid.vertexDeformations[150].fixed = true; // Debug.
+	grid.vertexDeformations[150].fixed = true; // Debug.*/
 
 	while (true) {
 		cap >> frame;
@@ -979,6 +987,13 @@ int main() {
 
 		targetLandmarks.push_back(cv::Point2i(0, frame.rows)); // left bottom corner
 		targetLandmarks.push_back(cv::Point2i(frame.cols, frame.rows)); // right bottom corner
+
+		//std::cout << landmarkControlPointsIDs.size() << " " << targetLandmarks.size() << std::endl;
+		for (int k = 0; k < landmarkControlPointsIDs.size(); ++k) {
+			int cp = landmarkControlPointsIDs[k];
+			grid.vertexDeformations[cp].x = 2.0f * (float(targetLandmarks[k].x) / float(frame.cols)) - 1.0f;
+			grid.vertexDeformations[cp].y = -1.0 * (2.0f * (float(targetLandmarks[k].y) / float(frame.rows)) - 1.0f);
+		}
 
 		cv::Mat faceMask = getSkinMask(frame, targetLandmarks);
 
@@ -1021,15 +1036,12 @@ int main() {
 		glEnable(GL_DEPTH_TEST);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		// quad.draw();
+		quad.draw();
 
-		/*std::cout << sin(tm.elapsed_milliseconds() / 1000.0f) << std::endl;
-		grid.vertices[150] = sin(tm.elapsed_milliseconds()/1000.0f);*/
+		// grid.vertexDeformations[150].x = sin(tm.elapsed_milliseconds() / 1000.0f);
 
-		grid.vertexDeformations[150].x = sin(tm.elapsed_milliseconds() / 1000.0f);
-
-		grid.deformGrid(1000);
-		grid.draw(); // Draw grid with deformations.
+		/*grid.deformGrid(10);
+		grid.draw(); // Draw grid with deformations.*/
 
 		SDL_GL_SwapWindow(globalOpenglData.mainWindow);
 
