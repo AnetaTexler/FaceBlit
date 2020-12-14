@@ -160,6 +160,11 @@ FB_OpenGL::Grid::Grid(int x_count, int y_count, Shader* _shader) {
 
 			vertices_uv_local.push_back(x * x_spacing);
 			vertices_uv_local.push_back(y * y_spacing);
+
+			VertexDeformInfo info;
+			info.x = (x * x_spacing) * 2.0f - 1.0f;
+			info.y = (y * y_spacing) * 2.0f - 1.0f;
+			vertexDeformations.push_back(info);
 		}
 	}
 
@@ -169,8 +174,8 @@ FB_OpenGL::Grid::Grid(int x_count, int y_count, Shader* _shader) {
 		for (int x = 0; x < x_count-1; x++) // for every column.
 		{
 			triangle_indices.push_back(x + x_count*y);
-			triangle_indices.push_back(x+1 + x_count * y);
-			triangle_indices.push_back(x+x_count + x_count * y);
+			triangle_indices.push_back(x + 1 + x_count * y);
+			triangle_indices.push_back(x + x_count + x_count * y);
 
 			triangle_indices.push_back(x + 1 + x_count * y);
 			triangle_indices.push_back(x + x_count + x_count * y);
@@ -187,6 +192,8 @@ FB_OpenGL::Grid::Grid(int x_count, int y_count, Shader* _shader) {
 	glVertexAttribPointer(_shader->getPosLocation(), 2, GL_FLOAT, GL_FALSE, 0, 0);
 
 	vertices = vertices_local;
+	vertices_rest = vertices_local;
+	triangle_ids = triangle_indices;
 	un_short = false;
 
 	glGenBuffers(1, &uvbuffer);
@@ -225,7 +232,13 @@ void FB_OpenGL::Grid::draw() {
 
 	glBindVertexArray(vertexArrayObject);
 
-	// Texture handling
+	// Update vertex data.
+	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), &vertices[0], GL_DYNAMIC_DRAW);
+	/*glEnableVertexAttribArray(shader->getPosLocation());
+	glVertexAttribPointer(shader->getPosLocation(), 2, GL_FLOAT, GL_FALSE, 0, 0);*/
+
+	// Texture handling.
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, *(textureID));
 	glUniform1i(shader->getTexSamplerLocation(), 0);
@@ -533,4 +546,209 @@ cv::Mat FB_OpenGL::get_ocv_img_from_gl_img(GLuint ogl_texture_id)
 	cv::flip(image, image, 0); // OpenCV stores top to bottom, but we need the image bottom to top for OpenGL.
 
 	return image;
+}
+
+
+// *************************** DEFORMATIONS ************************************************
+
+int FB_OpenGL::Grid::getNearestControlPointID(float x, float y) {
+	int best_id = 0;
+	float best_d = 420.0f;
+	
+	for (size_t i = 0; i < vertices.size()/2; i++)
+	{
+		float dist = sqrt( pow( x - vertices[2*i] ,2.0f) + pow(y - vertices[2 * i + 1],2.0f) );
+		if (dist < best_d) {
+			best_d = dist; best_id = i;
+		}
+	}
+
+	return best_id;
+}
+
+void FB_OpenGL::Grid::setPointCoordinates(int id, float x, float y) {
+	vertexDeformations[id].fixed = true;
+	vertexDeformations[id].x = x;
+	vertexDeformations[id].y = y;
+}
+
+std::vector<int> FB_OpenGL::Grid::getQuadFromTriangleID(int triangle_id) {
+	std::vector<int> ids;
+
+	if (triangle_id % 2 == 1) triangle_id--;
+
+	ids.push_back(triangle_ids[triangle_id * 3]);
+	ids.push_back(triangle_ids[triangle_id * 3 + 1]);
+	ids.push_back(triangle_ids[triangle_id * 3 + 2]);
+	ids.push_back(triangle_ids[triangle_id * 3 + 5]);
+
+	return ids;
+}
+
+void FB_OpenGL::Grid::deformGrid(int iterations) {
+	int i, j, k;
+	std::vector<bool> active;
+
+	for (i = 0; i < numTriangles; i = i+2) {
+		bool current = false;
+		std::vector<int> vertex_ids = getQuadFromTriangleID(i);
+		for (j = 0; j < 4; j++) if (vertexDeformations[vertex_ids[j]].fixed) { current = true; break; }
+		active.push_back(current);
+	}
+
+	for (k = 0; k < iterations; k++) {
+		// null the vertices array
+		// init and null the weights array
+		weights.clear();
+
+		for (i = 0; i < vertices.size() / 2; i++) {
+			weights.push_back(0.0f);
+
+			if (vertexDeformations[i].fixed) continue;
+
+			vertices[2 * i] = 0.0f;
+			vertices[2 * i + 1] = 0.0f;
+
+		}
+
+		for (i = 0; i < numTriangles; i = i + 2) {
+
+			if (active[i/2]) activeSquareFit(i); else passiveSquareFit(i);
+
+		}
+
+		for (i = 0; i < vertices.size() / 2; i++) {
+			if (vertexDeformations[i].fixed) continue;
+
+			vertices[2 * i] /= weights[i];
+			vertices[2 * i + 1] /= weights[i];
+			vertexDeformations[i].x = vertices[2 * i];
+			vertexDeformations[i].y = vertices[2 * i + 1];
+
+		}
+	}
+}
+
+
+#define SQR(A) ((A)*(A))
+#define ZERO 1e-6
+#define CP 4096
+
+void FB_OpenGL::Grid::activeSquareFit(int triangle_id) {
+	int i; double sum, w, r0, r1, Tx, Ty, sx, sy, tx, ty, csx = 0, csy = 0, ctx = 0, cty = 0, cw = 0;
+
+	std::vector<int> vertex_ids = getQuadFromTriangleID(triangle_id);
+
+	for (i = 0; i < 4; i++) {
+		int vert_id = vertex_ids[i];
+		w = vertexDeformations[vert_id].fixed ? CP : 1;
+
+		csx += vertices_rest[2 * vert_id] * w;
+		csy += vertices_rest[2 * vert_id + 1] * w;
+		ctx += vertexDeformations[vert_id].x * w;
+		cty += vertexDeformations[vert_id].y * w;
+
+		cw += w;
+
+	}
+
+	w = 1. / cw; sum = 0;
+
+	csx *= w; ctx *= w;
+	csy *= w; cty *= w;
+
+	r0 = 0; r1 = 0;
+
+	for (i = 0; i < 4; i++) {
+		int vert_id = vertex_ids[i];
+		w = vertexDeformations[vert_id].fixed ? CP : 1;
+
+		sx = vertices_rest[2 * vert_id] - csx;
+		sy = vertices_rest[2 * vert_id + 1] - csy;
+		tx = vertexDeformations[vert_id].x - ctx;
+		ty = vertexDeformations[vert_id].y - cty;
+
+		r0 += w * (sx * tx + sy * ty);
+		r1 += w * (sy * tx - sx * ty);
+	}
+
+	w = sqrt(SQR(r0) + SQR(r1));
+
+	if (fabs(w) < ZERO) return;
+
+	w = 1. / w; r0 *= w; r1 *= w;
+
+	Tx = ctx - r0 * csx - r1 * csy;
+	Ty = cty + r1 * csx - r0 * csy;
+
+	for (i = 0; i < 4; i++) {
+		/*v = q->V + i; 
+		p = q->P[i];
+
+		v->x = Tx + r0 * p->sx + r1 * p->sy;
+		v->y = Ty - r1 * p->sx + r0 * p->sy;*/
+
+		int vert_id = vertex_ids[i];
+
+		if (vertexDeformations[vert_id].fixed) {
+			vertices[2 * vert_id] = Tx + r0 * vertices_rest[2 * vert_id] + r1 * vertices_rest[2 * vert_id + 1];
+			vertices[2 * vert_id + 1] = Ty - r1 * vertices_rest[2 * vert_id] + r0 * vertices_rest[2 * vert_id + 1];
+		} else {
+			vertices[2 * vert_id] += Tx + r0 * vertices_rest[2 * vert_id] + r1 * vertices_rest[2 * vert_id + 1];
+			vertices[2 * vert_id + 1] += Ty - r1 * vertices_rest[2 * vert_id] + r0 * vertices_rest[2 * vert_id + 1];
+			weights[vert_id]++;
+		}
+
+	}
+}
+
+void FB_OpenGL::Grid::passiveSquareFit(int triangle_id) {
+	int i; 
+	// POINT* p; VERTEX* v; 
+	double sum, w, r0, r1, Tx, Ty, tx, ty, ctx = 0, cty = 0, csx = 0, csy = 0;
+	std::vector<int> vertex_ids = getQuadFromTriangleID(triangle_id);
+
+	for (i = 0; i < 4; i++) { 
+		int vert_id = vertex_ids[i];
+		csx += vertices_rest[2 * vert_id];
+		csy += vertices_rest[2 * vert_id + 1];
+		ctx += vertexDeformations[vert_id].x;
+		cty += vertexDeformations[vert_id].y;
+	} 
+	ctx *= 0.25; 
+	cty *= 0.25; 
+	csx *= 0.25;
+	csy *= 0.25;
+	r0 = 0; 
+	r1 = 0; 
+	sum = 0;
+
+	for (i = 0; i < 4; i++) {
+		int vert_id = vertex_ids[i];
+
+		tx = vertexDeformations[vert_id].x - ctx;
+		ty = vertexDeformations[vert_id].y - cty;
+
+		r0 += (vertices_rest[2 * vert_id] - csx) * tx + (vertices_rest[2 * vert_id + 1] - csy) * ty;
+		r1 += (vertices_rest[2 * vert_id + 1] - csy) * tx - (vertices_rest[2 * vert_id] - csx) * ty;
+
+	}
+
+	w = sqrt(SQR(r0) + SQR(r1));
+
+	if (fabs(w) < ZERO) return;
+
+	w = 1. / w; r0 *= w; r1 *= w;
+
+	Tx = ctx - r0 * csx - r1 * csy;
+	Ty = cty + r1 * csx - r0 * csy;
+
+	for (i = 0; i < 4; i++) {
+		int vert_id = vertex_ids[i];
+
+		vertices[2 * vert_id] += Tx + r0 * vertices_rest[2 * vert_id] + r1 * vertices_rest[2 * vert_id + 1];
+		vertices[2 * vert_id + 1] += Ty - r1 * vertices_rest[2 * vert_id] + r0 * vertices_rest[2 * vert_id + 1];
+		weights[vert_id]++;
+
+	}
 }

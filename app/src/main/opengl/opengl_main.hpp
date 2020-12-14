@@ -27,6 +27,11 @@ struct GlobalOpenglData {
 };
 extern GlobalOpenglData globalOpenglData;
 
+struct VertexDeformInfo {
+	bool fixed = false;
+	float x,y;
+};
+
 const float screenCoords[] = {
 		-1.0f, -1.0f,
 		1.0f, -1.0f,
@@ -90,8 +95,21 @@ namespace FB_OpenGL {
 
 		GLuint uvbuffer;
 		std::vector<float> vertices;
+		std::vector<float> vertices_rest;
+		std::vector<unsigned short> triangle_ids;
+		std::vector<VertexDeformInfo> vertexDeformations;
+
+		int getNearestControlPointID(float x, float y);
+		std::vector<int> getQuadFromTriangleID(int triangle_id);
+		void setPointCoordinates(int id, float x, float y);
+		void deformGrid(int iterations);
 
 	protected:
+
+		std::vector<float> weights;
+
+		void activeSquareFit(int triangle_id);
+		void passiveSquareFit(int triangle_id);
 
 	};
 

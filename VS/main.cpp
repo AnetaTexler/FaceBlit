@@ -908,7 +908,7 @@ int main() {
 		return -1;
 	}
 
-	FB_OpenGL::Shader debug_shader = FB_OpenGL::Shader("..\\app\\src\\main\\opengl\\shader\\pass_tex.vert", "..\\app\\src\\main\\opengl\\shader\\pass_tex.frag");
+	FB_OpenGL::Shader debug_shader = FB_OpenGL::Shader("..\\app\\src\\main\\opengl\\shader\\pass_tex_coords.vert", "..\\app\\src\\main\\opengl\\shader\\pass_tex.frag");
 	FB_OpenGL::Shader styleblit_shader = FB_OpenGL::Shader("..\\app\\src\\main\\opengl\\shader\\pass_tex.vert", "..\\app\\src\\main\\opengl\\shader\\styleblit_main.frag");
 	FB_OpenGL::Shader blending_shader = FB_OpenGL::Shader("..\\app\\src\\main\\opengl\\shader\\pass_tex.vert", "..\\app\\src\\main\\opengl\\shader\\styleblit_blend.frag");
 	debug_shader.init();
@@ -949,6 +949,15 @@ int main() {
 	
 	GLuint jitter_table_texture = FB_OpenGL::makeJitterTable(gaussian_noise.clone());
 	styleblit_main.setJitterTable(&jitter_table_texture);
+
+	TimeMeasure tm;
+	tm.reset();
+
+	int bot_left = grid.getNearestControlPointID(-1.0f,-1.0f); 
+	int bot_right = grid.getNearestControlPointID(1.0f, -1.0f);
+	grid.vertexDeformations[bot_left].fixed = true;
+	grid.vertexDeformations[bot_right].fixed = true;
+	grid.vertexDeformations[150].fixed = true; // Debug.
 
 	while (true) {
 		cap >> frame;
@@ -1012,8 +1021,15 @@ int main() {
 		glEnable(GL_DEPTH_TEST);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		quad.draw();
-		// grid.draw(); // Draw grid with deformations.
+		// quad.draw();
+
+		/*std::cout << sin(tm.elapsed_milliseconds() / 1000.0f) << std::endl;
+		grid.vertices[150] = sin(tm.elapsed_milliseconds()/1000.0f);*/
+
+		grid.vertexDeformations[150].x = sin(tm.elapsed_milliseconds() / 1000.0f);
+
+		grid.deformGrid(1000);
+		grid.draw(); // Draw grid with deformations.
 
 		SDL_GL_SwapWindow(globalOpenglData.mainWindow);
 
