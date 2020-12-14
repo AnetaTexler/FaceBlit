@@ -863,6 +863,11 @@ int main() {
 	cv::Mat styleAppGuide = getAppGuide(styleImg, true); // G_app
 	std::vector<cv::Point2i> styleLandmarks = getLandmarkPointsFromString(styleLandmarkStr.c_str());
 
+	// Circle
+	int radius = (styleLandmarks[45].x - styleLandmarks[36].x) * 2; // distance of outer eye corners + 80%
+	styleLandmarks.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(std::vector<cv::Point2i>(styleLandmarks.begin() + 48, styleLandmarks.begin() + 67)), radius, 45.0));
+	styleLandmarks.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(std::vector<cv::Point2i>(styleLandmarks.begin() + 48, styleLandmarks.begin() + 67)), radius, 90.0));
+	styleLandmarks.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(std::vector<cv::Point2i>(styleLandmarks.begin() + 48, styleLandmarks.begin() + 67)), radius, 135.0));
 	// Add 2 landmarks into the bottom corners - to prevent the body moving during MLS deformation
 	styleLandmarks.push_back(cv::Point2i(0, styleImg.rows)); // left bottom corner
 	styleLandmarks.push_back(cv::Point2i(styleImg.cols, styleImg.rows)); // right bottom corner
@@ -955,9 +960,12 @@ int main() {
 
 	std::vector<int> landmarkControlPointsIDs;
 
-	for (auto landmark : styleLandmarks) {
+	// Currently used landmarks are the bottom left and bottom right corners, three points of the notional circle, and the mouth facial landmarks.
+	for (int k = 0; k < styleLandmarks.size(); ++k) {
+	//for (auto landmark : styleLandmarks) {
+		cv::Point2i landmark = styleLandmarks[k];
 		int cp = grid.getNearestControlPointID( 2.0 * (float(landmark.x) / float(styleImg.cols)) - 1.0f, -1.0 * (2.0 * (float(landmark.y) / float(styleImg.rows)) - 1.0f));
-		grid.vertexDeformations[cp].fixed = true;
+		// grid.vertexDeformations[cp].fixed = true;
 		landmarkControlPointsIDs.push_back(cp);
 	}
 
@@ -984,13 +992,20 @@ int main() {
 		targetLandmarks = faceDetResult.second;
 
 		// alignTargetToStyle(frame, targetLandmarks, styleLandmarks);
-
+		
+		// Add 3 landmarks on the bottom of the notional circle
+		radius = (targetLandmarks[45].x - targetLandmarks[36].x) * 2; // distance of outer eye corners + 80%
+		targetLandmarks.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(std::vector<cv::Point2i>(targetLandmarks.begin() + 48, targetLandmarks.begin() + 67)), radius, 45.0));
+		targetLandmarks.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(std::vector<cv::Point2i>(targetLandmarks.begin() + 48, targetLandmarks.begin() + 67)), radius, 90.0));
+		targetLandmarks.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(std::vector<cv::Point2i>(targetLandmarks.begin() + 48, targetLandmarks.begin() + 67)), radius, 135.0));
+		
 		targetLandmarks.push_back(cv::Point2i(0, frame.rows)); // left bottom corner
 		targetLandmarks.push_back(cv::Point2i(frame.cols, frame.rows)); // right bottom corner
 
 		//std::cout << landmarkControlPointsIDs.size() << " " << targetLandmarks.size() << std::endl;
-		for (int k = 0; k < landmarkControlPointsIDs.size(); ++k) {
+		for (int k = 60; k < landmarkControlPointsIDs.size(); ++k) {
 			int cp = landmarkControlPointsIDs[k];
+			grid.vertexDeformations[cp].fixed = true;
 			grid.vertexDeformations[cp].x = 2.0f * (float(targetLandmarks[k].x) / float(frame.cols)) - 1.0f;
 			grid.vertexDeformations[cp].y = -1.0 * (2.0f * (float(targetLandmarks[k].y) / float(frame.rows)) - 1.0f);
 		}
@@ -1038,10 +1053,13 @@ int main() {
 
 		quad.draw();
 
+		CartesianCoordinateSystem::drawRainbowLandmarks(frame, targetLandmarks);
+		Window::imgShow("Result", frame);
+
 		// grid.vertexDeformations[150].x = sin(tm.elapsed_milliseconds() / 1000.0f);
 
-		/*grid.deformGrid(10);
-		grid.draw(); // Draw grid with deformations.*/
+		grid.deformGrid(10);
+		grid.draw(); // Draw grid with deformations.
 
 		SDL_GL_SwapWindow(globalOpenglData.mainWindow);
 
