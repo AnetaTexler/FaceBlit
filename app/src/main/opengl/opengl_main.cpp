@@ -81,7 +81,7 @@ int initOpenGL() {
 }
 
 bool FB_OpenGL::init() {
-	globalOpenglData.w_width = 728; globalOpenglData.w_height = 1024;
+	globalOpenglData.w_width = 768; globalOpenglData.w_height = 1024;
 	globalOpenglData.w_pos_x = 100; globalOpenglData.w_pos_y = 100;
 
 	globalOpenglData.P = glm::perspective(glm::radians(60.0f), float(globalOpenglData.w_width) / float(globalOpenglData.w_height), 0.1f, 100.f);
@@ -248,10 +248,10 @@ void FB_OpenGL::Grid::draw() {
 	glBindTexture(GL_TEXTURE_2D, *(textureID));
 	glUniform1i(shader->getTexSamplerLocation(), 0);
 
-	// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	// glLineWidth(3);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	//glLineWidth(3);
 	glDrawElements(GL_TRIANGLES, numTriangles * 3, GL_UNSIGNED_SHORT, 0);
-	// glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glBindVertexArray(0);
 
 	glUseProgram(0);
@@ -314,6 +314,33 @@ void FB_OpenGL::StyblitBlender::draw() {
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, *(styleImgID));
 	glUniform1i(shader->getStyleImgLocation(), 1);
+
+	glUniform1i(shader->getWidthLocation(), width);
+	glUniform1i(shader->getHeightLocation(), height);
+
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	glBindVertexArray(0);
+
+	glUseProgram(0);
+}
+
+void FB_OpenGL::Blending::draw(GLuint A, GLuint B, GLuint mask) {
+	shader->useProgram();
+
+	glBindVertexArray(vertexArrayObject);
+
+	// Texture handling
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, A);
+	glUniform1i(shader->getALocation(), 0);
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, B);
+	glUniform1i(shader->getBLocation(), 1);
+
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, mask);
+	glUniform1i(shader->getMaskLocation(), 2);
 
 	glUniform1i(shader->getWidthLocation(), width);
 	glUniform1i(shader->getHeightLocation(), height);

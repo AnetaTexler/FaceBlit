@@ -49,6 +49,7 @@
     <ClInclude Include="..\app\src\main\opengl\shader.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\app\src\main\opengl\shader\blending.frag" />
     <None Include="..\app\src\main\opengl\shader\pass_tex.frag" />
     <None Include="..\app\src\main\opengl\shader\pass_tex.vert" />
     <None Include="..\app\src\main\opengl\shader\pass_tex_coords.vert" />

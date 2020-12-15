@@ -161,6 +161,9 @@ bool FB_OpenGL::Shader::init() {
 
 	thresholdLocation = glGetUniformLocation(program, "threshold");
 	NNFLocation = glGetUniformLocation(program, "NNF");
+	ALocation = glGetUniformLocation(program, "A");
+	BLocation = glGetUniformLocation(program, "B");
+	maskLocation = glGetUniformLocation(program, "mask");
 
 	std::cout << "Shader init successful" << std::endl;
 	return true;

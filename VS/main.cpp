@@ -854,6 +854,7 @@ int main() {
 	// --- READ STYLE FILES --------------------------------------------------
 	cv::Mat styleImg = cv::imread(root + "\\styles\\" + styleName);
 	std::ifstream styleLandmarkFile(root + "\\styles\\" + styleNameNoExtension + "_lm.txt");
+	cv::Mat styleImgBodyMask = cv::imread(root + "\\styles\\" + styleNameNoExtension + "_bodymask.png");
 	std::string styleLandmarkStr((std::istreambuf_iterator<char>(styleLandmarkFile)), std::istreambuf_iterator<char>());
 	styleLandmarkFile.close();
 	cv::Mat lookUpCube = loadLookUpCube(root + "\\styles\\" + styleNameNoExtension + "_lut.bytes");
@@ -864,7 +865,7 @@ int main() {
 	std::vector<cv::Point2i> styleLandmarks = getLandmarkPointsFromString(styleLandmarkStr.c_str());
 
 	// Circle
-	int radius = (styleLandmarks[45].x - styleLandmarks[36].x) * 2; // distance of outer eye corners + 80%
+	int radius = (styleLandmarks[45].x - styleLandmarks[36].x) * 1.3f; // distance of outer eye corners + 80%
 	styleLandmarks.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(std::vector<cv::Point2i>(styleLandmarks.begin() + 48, styleLandmarks.begin() + 67)), radius, 45.0));
 	styleLandmarks.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(std::vector<cv::Point2i>(styleLandmarks.begin() + 48, styleLandmarks.begin() + 67)), radius, 90.0));
 	styleLandmarks.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(std::vector<cv::Point2i>(styleLandmarks.begin() + 48, styleLandmarks.begin() + 67)), radius, 135.0));
@@ -931,16 +932,20 @@ int main() {
 	FB_OpenGL::Shader debug_shader = FB_OpenGL::Shader("..\\app\\src\\main\\opengl\\shader\\pass_tex_coords.vert", "..\\app\\src\\main\\opengl\\shader\\pass_tex.frag");
 	FB_OpenGL::Shader styleblit_shader = FB_OpenGL::Shader("..\\app\\src\\main\\opengl\\shader\\pass_tex.vert", "..\\app\\src\\main\\opengl\\shader\\styleblit_main.frag");
 	FB_OpenGL::Shader blending_shader = FB_OpenGL::Shader("..\\app\\src\\main\\opengl\\shader\\pass_tex.vert", "..\\app\\src\\main\\opengl\\shader\\styleblit_blend.frag");
+	FB_OpenGL::Shader mixing_shader = FB_OpenGL::Shader("..\\app\\src\\main\\opengl\\shader\\pass_tex.vert", "..\\app\\src\\main\\opengl\\shader\\blending.frag");
 	debug_shader.init();
 	styleblit_shader.init();
 	blending_shader.init();
+	mixing_shader.init();
 
 	FB_OpenGL::StyblitBlender quad = FB_OpenGL::StyblitBlender(&blending_shader);
 	FB_OpenGL::StyblitRenderer styleblit_main = FB_OpenGL::StyblitRenderer(&styleblit_shader);
-	FB_OpenGL::Grid grid = FB_OpenGL::Grid(10,20,x_min, x_max, y_min, y_max, &debug_shader);
+	FB_OpenGL::Grid grid = FB_OpenGL::Grid(20,20,x_min, x_max, y_min, y_max, &debug_shader);
+	FB_OpenGL::Blending mixer = FB_OpenGL::Blending(&mixing_shader);
 
 	styleblit_main.setWidthHeight( styleImg.cols, styleImg.rows);
 	quad.setWidthHeight(styleImg.cols, styleImg.rows);
+	mixer.setWidthHeight(styleImg.cols, styleImg.rows);
 
 	//GLuint quad_texture = FB_OpenGL::makeTexture(styleImg);
 	//quad.setTextureID( &quad_texture );
@@ -952,16 +957,22 @@ int main() {
 	GLuint targetAppGuide_texture = 0;
 	GLuint styleImg_texture = 0;
 	GLuint lookUpTableTexture = FB_OpenGL::make3DTexture(lookUpCube);
+	GLuint faceMask_texture = 0;
+	GLuint bodyMask_texture = 0;
 
 	// Setup framebuffer for styleblit to make it render to a texture which we can further process.
-	GLuint styleblit_frame_buffer;
-	GLuint styleblit_render_buffer_depth_stencil;
-	GLuint styleblit_tex_color_buffer;
+	GLuint styleblit_frame_buffer, styleblit_render_buffer_depth_stencil, styleblit_tex_color_buffer;
 	FB_OpenGL::makeFrameBuffer(globalOpenglData.w_width, globalOpenglData.w_height, styleblit_frame_buffer, styleblit_render_buffer_depth_stencil, styleblit_tex_color_buffer);
+	GLuint blending_frame_buffer, blending_render_buffer_depth_stencil, blending_tex_color_buffer;
+	FB_OpenGL::makeFrameBuffer(globalOpenglData.w_width, globalOpenglData.w_height, blending_frame_buffer, blending_render_buffer_depth_stencil, blending_tex_color_buffer);
+	GLuint body_frame_buffer, body_render_buffer_depth_stencil, body_tex_color_buffer;
+	FB_OpenGL::makeFrameBuffer(globalOpenglData.w_width, globalOpenglData.w_height, body_frame_buffer, body_render_buffer_depth_stencil, body_tex_color_buffer);
+	GLuint bodymask_frame_buffer, bodymask_render_buffer_depth_stencil, bodymask_tex_color_buffer;
+	FB_OpenGL::makeFrameBuffer(globalOpenglData.w_width, globalOpenglData.w_height, bodymask_frame_buffer, bodymask_render_buffer_depth_stencil, bodymask_tex_color_buffer);
+
 
 	quad.setTextures(&styleblit_tex_color_buffer, &styleImg_texture);
 	// GLuint frame_as_texture = 0;
-	grid.setTextureID(&styleImg_texture);
 
 	// Generate jitter table
 	cv::Mat gaussian_noise = cv::Mat::zeros(styleImg.rows, styleImg.cols, CV_8UC2);
@@ -975,11 +986,15 @@ int main() {
 
 	std::vector<int> landmarkControlPointsIDs;
 
+	for (int k = 0; k < 20; ++k) {
+		grid.vertexDeformations[k].fixed = true;
+	}
+
 	// Currently used landmarks are the bottom left and bottom right corners, three points of the notional circle, and the mouth facial landmarks.
 	for (int k = 0; k < styleLandmarks.size(); ++k) {
 	//for (auto landmark : styleLandmarks) {
 		cv::Point2i landmark = styleLandmarks[k];
-		int cp = grid.getNearestControlPointID( 2.0 * (float(landmark.x) / float(styleImg.cols)) - 1.0f, -1.0 * (2.0 * (float(landmark.y) / float(styleImg.rows)) - 1.0f));
+		int cp = grid.getNearestControlPointID( 2.0f * (float(landmark.x) / float(styleImg.cols)) - 1.0f, -1.0f * (2.0f * (float(landmark.y) / float(styleImg.rows)) - 1.0f));
 		// grid.vertexDeformations[cp].fixed = true;
 		landmarkControlPointsIDs.push_back(cp);
 	}
@@ -1011,7 +1026,7 @@ int main() {
 		// alignTargetToStyle(frame, targetLandmarks, styleLandmarks);
 		
 		// Add 3 landmarks on the bottom of the notional circle
-		radius = (targetLandmarks[45].x - targetLandmarks[36].x) * 2; // distance of outer eye corners + 80%
+		radius = (targetLandmarks[45].x - targetLandmarks[36].x) * 1.5f; // distance of outer eye corners + 80%
 		targetLandmarks.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(std::vector<cv::Point2i>(targetLandmarks.begin() + 48, targetLandmarks.begin() + 67)), radius, 45.0));
 		targetLandmarks.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(std::vector<cv::Point2i>(targetLandmarks.begin() + 48, targetLandmarks.begin() + 67)), radius, 90.0));
 		targetLandmarks.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(std::vector<cv::Point2i>(targetLandmarks.begin() + 48, targetLandmarks.begin() + 67)), radius, 135.0));
@@ -1040,6 +1055,7 @@ int main() {
 		if (i > 2) {
 			FB_OpenGL::updateTexture(targetPosGuide_texture, targetPosGuide.clone());
 			FB_OpenGL::updateTexture(targetAppGuide_texture, targetAppGuide.clone());
+			FB_OpenGL::updateTexture(faceMask_texture, faceMask.clone());
 		}
 		else {
 			stylePosGuide_texture = FB_OpenGL::makeTexture(stylePosGuide.clone());
@@ -1048,6 +1064,9 @@ int main() {
 			targetAppGuide_texture = FB_OpenGL::makeTexture(targetAppGuide.clone());
 			styleImg_texture = FB_OpenGL::makeTexture(styleImg.clone());
 			styleblit_main.setTextures(&stylePosGuide_texture, &targetPosGuide_texture, &styleAppGuide_texture, &targetAppGuide_texture, &styleImg_texture, &lookUpTableTexture);
+			faceMask_texture = FB_OpenGL::makeTexture(faceMask.clone());
+			bodyMask_texture = FB_OpenGL::makeTexture(styleImgBodyMask.clone());
+
 		}
 
 		// Bind the StyleBlit framebuffer, which will make all operations render in a texture.
@@ -1061,28 +1080,67 @@ int main() {
 		styleblit_main.draw();
 
 		// Re-bind the default framebuffer.
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glBindFramebuffer(GL_FRAMEBUFFER, blending_frame_buffer);
 		glDepthFunc(GL_ALWAYS);
 		glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
 		glViewport(0, 0, globalOpenglData.w_width, globalOpenglData.w_height);
 		glEnable(GL_DEPTH_TEST);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		// quad.draw();
+		quad.draw();
 
-		CartesianCoordinateSystem::drawRainbowLandmarks(frame, targetLandmarks);
-		Window::imgShow("Result", frame);
+		// Re-bind the default framebuffer.
+		glBindFramebuffer(GL_FRAMEBUFFER, body_frame_buffer);
+		glDepthFunc(GL_ALWAYS);
+		glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+		glViewport(0, 0, globalOpenglData.w_width, globalOpenglData.w_height);
+		glEnable(GL_DEPTH_TEST);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		/*CartesianCoordinateSystem::drawRainbowLandmarks(frame, targetLandmarks);
+		// CartesianCoordinateSystem::drawRainbowLandmarks(frame, styleLandmarks);
+		Window::imgShow("Result", frame);*/
 
 		// grid.vertexDeformations[150].x = sin(tm.elapsed_milliseconds() / 1000.0f);
 
+
+		grid.setTextureID(&styleImg_texture);
 		grid.deformGrid(100);
 		grid.draw(); // Draw grid with deformations.
+
+		glBindFramebuffer(GL_FRAMEBUFFER, bodymask_frame_buffer);
+		glDepthFunc(GL_ALWAYS);
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glViewport(0, 0, globalOpenglData.w_width, globalOpenglData.w_height);
+		glEnable(GL_DEPTH_TEST);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		/*CartesianCoordinateSystem::drawRainbowLandmarks(frame, targetLandmarks);
+		// CartesianCoordinateSystem::drawRainbowLandmarks(frame, styleLandmarks);
+		Window::imgShow("Result", frame);*/
+
+		// grid.vertexDeformations[150].x = sin(tm.elapsed_milliseconds() / 1000.0f);
+
+
+		grid.setTextureID(&bodyMask_texture);
+		grid.draw(); // Draw grid with deformations.
+
+		// Re-bind the default framebuffer.
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glDepthFunc(GL_ALWAYS);
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glViewport(0, 0, globalOpenglData.w_width, globalOpenglData.w_height);
+		glEnable(GL_DEPTH_TEST);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		mixer.draw(body_tex_color_buffer, blending_tex_color_buffer, bodymask_tex_color_buffer);
 
 		SDL_GL_SwapWindow(globalOpenglData.mainWindow);
 
 		// Uncomment if you want to save the output NNF. Current implementation is leaking a bit, so be careful.
 		/*cv::Mat out_image = FB_OpenGL::get_ocv_img_from_gl_img(styleblit_tex_color_buffer);
-		out << out_image;
+		CartesianCoordinateSystem::drawRainbowLandmarks(out_image, targetLandmarks);
+		//out << out_image;
 		Window::imgShow("Result", out_image);*/
 
 	}

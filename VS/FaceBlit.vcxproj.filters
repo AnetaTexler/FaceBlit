@@ -118,5 +118,8 @@
     <None Include="..\app\src\main\opengl\shader\pass_tex_coords.vert">
       <Filter>Source Files\Shaders</Filter>
     </None>
+    <None Include="..\app\src\main\opengl\shader\blending.frag">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

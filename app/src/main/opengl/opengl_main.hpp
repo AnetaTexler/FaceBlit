@@ -183,6 +183,23 @@ namespace FB_OpenGL {
 		
 	};
 
+	class Blending : public FullScreenQuad {
+	public:
+		Blending() {}
+		Blending(Shader* _shader) : FullScreenQuad(_shader) {}
+		~Blending() {}
+
+		virtual void draw(GLuint A, GLuint B, GLuint mask);
+
+		void setWidthHeight(int _width, int _height) { width = _width; height = _height; }
+
+
+	protected:
+		int width;
+		int height;
+
+	};
+
 };
 
 #endif // _FACEBLIT_OPENGL

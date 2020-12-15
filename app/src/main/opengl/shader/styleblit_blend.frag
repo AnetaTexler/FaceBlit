@@ -31,14 +31,19 @@ void main() {
 
   vec4 sumColor = vec4(0.0,0.0,0.0,0.0);
   float sumWeight = 0.0;
-  
+  vec4 NNF_at_position;
 
   for(int oy=-BLEND_RADIUS;oy<=+BLEND_RADIUS;oy++)
   for(int ox=-BLEND_RADIUS;ox<=+BLEND_RADIUS;ox++)
     {
-        sumColor += texture2D(styleImg,((unpack(texture2D(NNF,(xy+vec2(ox,oy))/vec2(width,height)))-vec2(ox,oy))+vec2(0.5,0.5))/vec2(width,height));
+        NNF_at_position = texture2D(NNF,(xy + vec2(ox,oy))/vec2(width,height));
+        sumColor += texture2D(styleImg,( unpack( NNF_at_position ) - vec2(ox,oy) + vec2(0.5,0.5) ) / vec2(width,height) );
         sumWeight += 1.0;
     }
-  
+
+  /*fragColor = NNF_at_position;
+  fragColor = abs(NNF_at_position-texture(NNF, texCoord_v));
+  return;*/
+
   fragColor = (sumWeight>0.0) ? sumColor/sumWeight : texture2D(styleImg,vec2(0.0,0.0));
 }
