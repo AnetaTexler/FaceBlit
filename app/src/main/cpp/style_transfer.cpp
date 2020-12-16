@@ -26,7 +26,7 @@
 
 
 
-int GRID_SIZE = 10;
+int GRID_SIZE = 40;
 int MEAN = 128;
 
 
@@ -661,10 +661,15 @@ cv::Mat loadLookUpCube(const std::string& path)
 {
 	int sizes[] = { 256, 256, 256 };
 	cv::Mat lookUpCube(3, sizes, CV_16UC2); // 16bit unsigned short 0 - 65535 (2 channels - u, v coordinates in style)
-
+	
 	std::ifstream ifs(path, std::ios::binary);
-	ifs.read((char*)lookUpCube.data, 256 * 256 * 256 * 2 * (sizeof(ushort) / sizeof(uchar)));
+	if (ifs.fail())
+	{
+		Log_e("FACEBLIT", "Fail to read lookup cube!");
+		throw "Fail to read lookup cube!";
+	}
 
+	ifs.read((char*)lookUpCube.data, 256 * 256 * 256 * 2 * (sizeof(ushort) / sizeof(uchar)));
 	ifs.close();
 
 	return lookUpCube;
@@ -1123,7 +1128,7 @@ void visualizeChunks(const cv::Mat1i& coveredPixels) // Random color for each ch
 		}
 	}
 	Window::imgShow("Chunks", result);
-	//cv::imwrite("C:\\Users\\Aneta\\Desktop\\Archstyle\\Sequence1\\chunks.png", result);
+	//cv::imwrite("C:\\Users\\Aneta\\Desktop\\FFHQ_sub\\chunks.png", result);
 
 	cv::waitKey(1);
 #endif
