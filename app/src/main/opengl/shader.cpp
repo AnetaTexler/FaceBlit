@@ -164,6 +164,8 @@ bool FB_OpenGL::Shader::init() {
 	ALocation = glGetUniformLocation(program, "A");
 	BLocation = glGetUniformLocation(program, "B");
 	maskLocation = glGetUniformLocation(program, "mask");
+	facialMaskLocation = glGetUniformLocation(program, "facial_mask");
+	backgroundLocation = glGetUniformLocation(program, "background");
 
 	std::cout << "Shader init successful" << std::endl;
 	return true;

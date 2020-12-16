@@ -155,7 +155,7 @@ namespace FB_OpenGL {
 
 		int width;
 		int height;
-		float threshold = 50.0f;
+		float threshold = 40.0f;
 	};
 
 	class StyblitBlender : public FullScreenQuad {
@@ -189,7 +189,7 @@ namespace FB_OpenGL {
 		Blending(Shader* _shader) : FullScreenQuad(_shader) {}
 		~Blending() {}
 
-		virtual void draw(GLuint A, GLuint B, GLuint mask);
+		virtual void draw(GLuint A, GLuint B, GLuint mask, GLuint facialMask, GLuint background);
 
 		void setWidthHeight(int _width, int _height) { width = _width; height = _height; }
 

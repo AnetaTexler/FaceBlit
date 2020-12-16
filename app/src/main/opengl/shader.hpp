@@ -47,6 +47,8 @@ namespace FB_OpenGL {
 			GLint getALocation() { return ALocation;}
 			GLint getBLocation() { return BLocation;}
 			GLint getMaskLocation() { return maskLocation;}
+			GLint getFacialMaskLocation() { return facialMaskLocation;}
+			GLint getBackgroundLocation() { return backgroundLocation;}
 
 			GLuint getUseTextureLocation() { return useTextureLocation; }
 			GLuint getPVMmatrixLocation() { return PVMmatrixLocation; }
@@ -90,6 +92,8 @@ namespace FB_OpenGL {
 			GLint ALocation;
 			GLint BLocation;
 			GLint maskLocation;
+			GLint facialMaskLocation;
+			GLint backgroundLocation;
 	};
 
 };

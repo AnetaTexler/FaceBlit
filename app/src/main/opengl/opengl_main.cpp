@@ -324,7 +324,7 @@ void FB_OpenGL::StyblitBlender::draw() {
 	glUseProgram(0);
 }
 
-void FB_OpenGL::Blending::draw(GLuint A, GLuint B, GLuint mask) {
+void FB_OpenGL::Blending::draw(GLuint A, GLuint B, GLuint mask, GLuint facialMask, GLuint background) {
 	shader->useProgram();
 
 	glBindVertexArray(vertexArrayObject);
@@ -341,6 +341,14 @@ void FB_OpenGL::Blending::draw(GLuint A, GLuint B, GLuint mask) {
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, mask);
 	glUniform1i(shader->getMaskLocation(), 2);
+
+	glActiveTexture(GL_TEXTURE3);
+	glBindTexture(GL_TEXTURE_2D, facialMask);
+	glUniform1i(shader->getFacialMaskLocation(), 3);
+
+	glActiveTexture(GL_TEXTURE4);
+	glBindTexture(GL_TEXTURE_2D, background);
+	glUniform1i(shader->getBackgroundLocation(), 4);
 
 	glUniform1i(shader->getWidthLocation(), width);
 	glUniform1i(shader->getHeightLocation(), height);
