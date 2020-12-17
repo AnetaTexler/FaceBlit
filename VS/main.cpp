@@ -16,6 +16,15 @@
 
 #include <opengl_main.hpp>
 
+std::vector<cv::Point2i> averageMarkers(std::vector<cv::Point2i> A, std::vector<cv::Point2i> B) {
+	for (size_t i = 0; i < A.size(); i++)
+	{
+		A[i].x = (A[i].x + B[i].x) / 2;
+		A[i].y = (A[i].y + B[i].y) / 2;
+	}
+
+	return A;
+}
 
 cv::Mat alphaBlendTransparentBG(cv::Mat foreground, cv::Mat alphaMask)
 {
@@ -1014,6 +1023,19 @@ int main() {
 	selected_landmark_ids.push_back(64); // lip right corner
 	selected_landmark_ids.push_back(68); // throat
 
+	std::vector<cv::Point2i> hair_markers;
+	/*hair_markers.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(std::vector<cv::Point2i>(styleLandmarks.begin() + 48, styleLandmarks.begin() + 67)), radius, 45.0));
+	hair_markers.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(std::vector<cv::Point2i>(styleLandmarks.begin() + 48, styleLandmarks.begin() + 67)), radius, 90.0));
+	hair_markers.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(std::vector<cv::Point2i>(styleLandmarks.begin() + 48, styleLandmarks.begin() + 67)), radius, 135.0));*/
+	std::vector<cv::Point2i> toAverage;
+	toAverage.push_back(styleLandmarks[36]);
+	toAverage.push_back(styleLandmarks[45]);
+	radius = (styleLandmarks[45].x - styleLandmarks[36].x) * 1.1f; 
+	hair_markers.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(toAverage), radius, 270.0));
+	hair_markers.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(toAverage), radius, 315.0));
+	hair_markers.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(toAverage), radius, 225.0));
+	//hair_markers.push_back(styleLandmarks[45]);
+
 	// Image processing
 
 	cv::Mat bodyChannels[4];
@@ -1056,7 +1078,12 @@ int main() {
 		}
 
 		faceDetector.detectFacemarks(frame, faceDetResult);
-		targetLandmarks = faceDetResult.second;
+		if (i > 1) {
+			std::vector<cv::Point2i> targetLandmarks_temp = faceDetResult.second;
+			targetLandmarks = averageMarkers(targetLandmarks_temp, targetLandmarks);
+		} else {
+			targetLandmarks = faceDetResult.second;
+		}
 
 		// alignTargetToStyle(frame, targetLandmarks, styleLandmarks);
 		
@@ -1076,6 +1103,15 @@ int main() {
 			grid.vertexDeformations[cp].x = 2.0f * (float(targetLandmarks[k].x) / float(frame.cols)) - 1.0f;
 			grid.vertexDeformations[cp].y = -1.0 * (2.0f * (float(targetLandmarks[k].y) / float(frame.rows)) - 1.0f);
 		}
+
+		hair_markers.clear();
+		toAverage.clear();
+		toAverage.push_back(targetLandmarks[36]);
+		toAverage.push_back(targetLandmarks[45]);
+		radius = (targetLandmarks[45].x - targetLandmarks[36].x) * 0.9f;
+		hair_markers.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(toAverage), radius, 270.0));
+		hair_markers.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(toAverage), radius, 315.0));
+		hair_markers.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(toAverage), radius, 225.0));
 
 		cv::Mat faceMask = getSkinMask(frame, targetLandmarks);
 
@@ -1198,13 +1234,13 @@ int main() {
 		// Uncomment if you want to save the output NNF. Current implementation is leaking a bit, so be careful.
 		//if ( i == 99) {
 			//cv::Mat out_image = FB_OpenGL::get_ocv_img_from_gl_img(styleblit_tex_color_buffer);
-		/*std::vector<cv::Point2i> selected_markers;
+		std::vector<cv::Point2i> selected_markers;
 		for (auto landmark_id : selected_landmark_ids) {
 			selected_markers.push_back(targetLandmarks[landmark_id]);
-		}*/
-			//CartesianCoordinateSystem::drawRainbowLandmarks(frame, selected_markers);
+		}
+			CartesianCoordinateSystem::drawRainbowLandmarks(frame, targetLandmarks);
 			//out << out_image;
-			// Window::imgShow("Result", stylizedMaskCPU);
+			Window::imgShow("Result", frame);
 			//cv::imwrite(root + "\\styles\\" + std::to_string(i) + "_body_stylized.png", out_image);
 		//}
 
