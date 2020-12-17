@@ -953,7 +953,8 @@ int main() {
 
 	FB_OpenGL::StyblitBlender quad = FB_OpenGL::StyblitBlender(&blending_shader);
 	FB_OpenGL::StyblitRenderer styleblit_main = FB_OpenGL::StyblitRenderer(&styleblit_shader);
-	FB_OpenGL::Grid grid = FB_OpenGL::Grid(32, 32, 0.0f, 1.0f, 0.0f, 0.5f, &debug_shader);
+	FB_OpenGL::Grid grid = FB_OpenGL::Grid(32, 32, 0.0f, 1.0f, 0.0f, 0.5f, &debug_shader); // FIXNUTÉ NATVRDO!
+	FB_OpenGL::Grid grid_hair = FB_OpenGL::Grid(32, 32, 0.1f, 0.9f, 0.2f, 0.98f, &debug_shader); // FIXNUTÉ NATVRDO!
 	FB_OpenGL::Blending mixer = FB_OpenGL::Blending(&mixing_shader);
 
 	styleblit_main.setWidthHeight( styleImg.cols, styleImg.rows);
@@ -1003,6 +1004,7 @@ int main() {
 	tm.reset();
 
 	std::vector<int> landmarkControlPointsIDs;
+	std::vector<int> hairControlPointsIDs;
 
 	for (int k = 0; k < 32; ++k) {
 		grid.vertexDeformations[k].fixed = true;
@@ -1036,6 +1038,14 @@ int main() {
 	hair_markers.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(toAverage), radius, 225.0));
 	//hair_markers.push_back(styleLandmarks[45]);
 
+		// Currently used landmarks are the bottom left and bottom right corners, three points of the notional circle, and the mouth facial landmarks.
+	for (int k = 0; k < hair_markers.size(); ++k) {
+		//for (auto landmark : styleLandmarks) {
+		cv::Point2i landmark = hair_markers[k];
+		int cp = grid_hair.getNearestControlPointID(2.0f * (float(landmark.x) / float(styleImg.cols)) - 1.0f, -1.0f * (2.0f * (float(landmark.y) / float(styleImg.rows)) - 1.0f));
+		// grid.vertexDeformations[cp].fixed = true;
+		hairControlPointsIDs.push_back(cp);
+	}
 	// Image processing
 
 	cv::Mat bodyChannels[4];
@@ -1097,7 +1107,8 @@ int main() {
 		//targetLandmarks.push_back(cv::Point2i(frame.cols, frame.rows)); // right bottom corner
 
 		//std::cout << landmarkControlPointsIDs.size() << " " << targetLandmarks.size() << std::endl;
-		for (int k = 60; k < landmarkControlPointsIDs.size(); ++k) {
+		//for (int k = 60; k < landmarkControlPointsIDs.size(); ++k) {
+		for (int k : selected_landmark_ids) {
 			int cp = landmarkControlPointsIDs[k];
 			grid.vertexDeformations[cp].fixed = true;
 			grid.vertexDeformations[cp].x = 2.0f * (float(targetLandmarks[k].x) / float(frame.cols)) - 1.0f;
@@ -1219,6 +1230,19 @@ int main() {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		mixer.draw(body_tex_color_buffer, blending_tex_color_buffer, bodymask_tex_color_buffer, facemask_tex_color_buffer, background_texture);
+
+		/*glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glDepthFunc(GL_ALWAYS);
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glViewport(0, 0, globalOpenglData.w_width, globalOpenglData.w_height);
+		glEnable(GL_DEPTH_TEST);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		// grid.vertexDeformations[150].x = sin(tm.elapsed_milliseconds() / 1000.0f);
+
+		grid_hair.setTextureID(&styleImg_texture);
+		grid_hair.deformGrid(200);
+		grid_hair.draw(); // Draw grid with deformations.*/
 
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glBindFramebuffer(GL_FRAMEBUFFER, styleblit_frame_buffer);
