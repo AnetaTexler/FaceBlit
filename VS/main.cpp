@@ -840,6 +840,7 @@ int xxmain()
 int main() {
 	// Don't forget to change this path before you start.
 	const std::string root = "C:\\Work\\TestDataset\\Videos";
+	const std::string drawablePath = "..\\app\\src\\main\\res\\drawable\\";
 	//const std::string root = std::filesystem::current_path().string();
 
 	std::string styleName = "watercolorgirl.png";			// name of a style image from dir root/styles with extension
@@ -854,10 +855,10 @@ int main() {
 	// --- READ STYLE FILES --------------------------------------------------
 	cv::Mat styleImg = cv::imread(root + "\\styles\\" + styleName);
 	std::ifstream styleLandmarkFile(root + "\\styles\\" + styleNameNoExtension + "_lm.txt");
-	cv::Mat styleImgBody_full = cv::imread(root + "\\styles\\" + styleNameNoExtension + "_body.png", cv::IMREAD_UNCHANGED);
-	cv::Mat styleImgExternalMask = cv::imread(root + "\\styles\\" + styleNameNoExtension + "_mask.png");
+	cv::Mat styleImgBody_full = cv::imread(drawablePath + styleNameNoExtension + "_body.png", cv::IMREAD_UNCHANGED);
+	cv::Mat styleImgExternalMask = cv::imread(drawablePath + styleNameNoExtension + "_mask.png");
 	//cv::Mat styleImgExternalMask = cv::imread(root + "\\styles\\" + styleNameNoExtension + "_mask_mock.png");
-	cv::Mat styleImgBackground = cv::imread(root + "\\styles\\" + styleNameNoExtension + "_bg.png");
+	cv::Mat styleImgBackground = cv::imread(drawablePath + styleNameNoExtension + "_bg.png");
 	std::string styleLandmarkStr((std::istreambuf_iterator<char>(styleLandmarkFile)), std::istreambuf_iterator<char>());
 	styleLandmarkFile.close();
 	cv::Mat lookUpCube = loadLookUpCube(root + "\\styles\\" + styleNameNoExtension + "_lut.bytes");
@@ -1083,6 +1084,9 @@ int main() {
 		cv::Mat targetAppGuide = getAppGuide(frame, false); // G_app
 		targetAppGuide = grayHistMatching(targetAppGuide, styleAppGuide);
 
+		cv::Mat stylizedImg = styleBlit(stylePosGuide, targetPosGuide, styleAppGuide, targetAppGuide, lookUpCube, styleImg, cv::Rect2i(0, 0, frame.cols, frame.rows));
+		cv::Mat stylizedMaskCPU = styleBlit(stylePosGuide, targetPosGuide, styleAppGuide, targetAppGuide, lookUpCube, styleImgExternalMask, cv::Rect2i(0, 0, frame.cols, frame.rows));
+
 		i++;
 
 		// std::cout << i << std::endl;
@@ -1107,9 +1111,11 @@ int main() {
 			background_texture = FB_OpenGL::makeTexture(styleImgBackground.clone());
 
 		}
+		FB_OpenGL::updateTexture(blending_tex_color_buffer, stylizedImg.clone());
+		FB_OpenGL::updateTexture(facemask_tex_color_buffer, stylizedMaskCPU.clone());
 
 		// Bind the StyleBlit framebuffer, which will make all operations render in a texture.
-		glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
+		/*glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
 		glBindFramebuffer(GL_FRAMEBUFFER, styleblit_frame_buffer);
 		glDepthFunc(GL_ALWAYS);
 		glViewport(0, 0, globalOpenglData.w_width, globalOpenglData.w_height);
@@ -1138,7 +1144,7 @@ int main() {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		quad.setTextures(&styleblit_tex_color_buffer, &externalMask_texture);
-		quad.draw();
+		quad.draw();*/
 
 		// Re-bind the default framebuffer.
 		glBindFramebuffer(GL_FRAMEBUFFER, body_frame_buffer);
@@ -1191,14 +1197,14 @@ int main() {
 
 		// Uncomment if you want to save the output NNF. Current implementation is leaking a bit, so be careful.
 		//if ( i == 99) {
-			cv::Mat out_image = FB_OpenGL::get_ocv_img_from_gl_img(styleblit_tex_color_buffer);
+			//cv::Mat out_image = FB_OpenGL::get_ocv_img_from_gl_img(styleblit_tex_color_buffer);
 		/*std::vector<cv::Point2i> selected_markers;
 		for (auto landmark_id : selected_landmark_ids) {
 			selected_markers.push_back(targetLandmarks[landmark_id]);
 		}*/
 			//CartesianCoordinateSystem::drawRainbowLandmarks(frame, selected_markers);
-			out << out_image;
-			//Window::imgShow("Result", frame);
+			//out << out_image;
+			// Window::imgShow("Result", stylizedMaskCPU);
 			//cv::imwrite(root + "\\styles\\" + std::to_string(i) + "_body_stylized.png", out_image);
 		//}
 
