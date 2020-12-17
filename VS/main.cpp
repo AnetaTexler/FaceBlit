@@ -866,6 +866,7 @@ int main() {
 	std::ifstream styleLandmarkFile(root + "\\styles\\" + styleNameNoExtension + "_lm.txt");
 	cv::Mat styleImgBody_full = cv::imread(drawablePath + styleNameNoExtension + "_body.png", cv::IMREAD_UNCHANGED);
 	cv::Mat styleImgExternalMask = cv::imread(drawablePath + styleNameNoExtension + "_mask.png");
+	cv::Mat styleImgHairMask = cv::imread(drawablePath + styleNameNoExtension + "_hair_mask.png");
 	//cv::Mat styleImgExternalMask = cv::imread(root + "\\styles\\" + styleNameNoExtension + "_mask_mock.png");
 	cv::Mat styleImgBackground = cv::imread(drawablePath + styleNameNoExtension + "_bg.png");
 	std::string styleLandmarkStr((std::istreambuf_iterator<char>(styleLandmarkFile)), std::istreambuf_iterator<char>());
@@ -988,6 +989,10 @@ int main() {
 	FB_OpenGL::makeFrameBuffer(globalOpenglData.w_width, globalOpenglData.w_height, bodymask_frame_buffer, bodymask_render_buffer_depth_stencil, bodymask_tex_color_buffer);
 	GLuint facemask_frame_buffer, facemask_render_buffer_depth_stencil, facemask_tex_color_buffer;
 	FB_OpenGL::makeFrameBuffer(globalOpenglData.w_width, globalOpenglData.w_height, facemask_frame_buffer, facemask_render_buffer_depth_stencil, facemask_tex_color_buffer);
+	GLuint hair_frame_buffer, hair_render_buffer_depth_stencil, hair_tex_color_buffer;
+	FB_OpenGL::makeFrameBuffer(globalOpenglData.w_width, globalOpenglData.w_height, hair_frame_buffer, hair_render_buffer_depth_stencil, hair_tex_color_buffer);
+	GLuint hairmask_frame_buffer, hairmask_render_buffer_depth_stencil, hairmask_tex_color_buffer;
+	FB_OpenGL::makeFrameBuffer(globalOpenglData.w_width, globalOpenglData.w_height, hairmask_frame_buffer, hairmask_render_buffer_depth_stencil, hairmask_tex_color_buffer);
 
 
 	quad.setTextures(&styleblit_tex_color_buffer, &styleImg_texture);
@@ -1115,14 +1120,22 @@ int main() {
 			grid.vertexDeformations[cp].y = -1.0 * (2.0f * (float(targetLandmarks[k].y) / float(frame.rows)) - 1.0f);
 		}
 
-		hair_markers.clear();
+		//hair_markers.clear();
+		std::vector<cv::Point2i> hair_markers_target;
 		toAverage.clear();
 		toAverage.push_back(targetLandmarks[36]);
 		toAverage.push_back(targetLandmarks[45]);
 		radius = (targetLandmarks[45].x - targetLandmarks[36].x) * 0.9f;
-		hair_markers.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(toAverage), radius, 270.0));
-		hair_markers.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(toAverage), radius, 315.0));
-		hair_markers.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(toAverage), radius, 225.0));
+		hair_markers_target.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(toAverage), radius, 270.0));
+		hair_markers_target.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(toAverage), radius, 315.0));
+		hair_markers_target.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(toAverage), radius, 225.0));
+
+		for (int k = 0; k < hair_markers_target.size(); ++k) {
+			int cp = hairControlPointsIDs[k];
+			grid_hair.vertexDeformations[cp].fixed = true;
+			grid_hair.vertexDeformations[cp].x = 2.0f * (float(hair_markers_target[k].x) / float(frame.cols)) - 1.0f;
+			grid_hair.vertexDeformations[cp].y = -1.0 * (2.0f * (float(hair_markers_target[k].y) / float(frame.rows)) - 1.0f);
+		}
 
 		cv::Mat faceMask = getSkinMask(frame, targetLandmarks);
 
@@ -1171,6 +1184,9 @@ int main() {
 
 		styleblit_main.draw();
 
+		// ********************************************************************************************************************
+		// ***************************************** STYLEBLIT NNF ************************************************************
+
 		// Re-bind the default framebuffer.
 		glBindFramebuffer(GL_FRAMEBUFFER, blending_frame_buffer);
 		glDepthFunc(GL_ALWAYS);
@@ -1182,6 +1198,8 @@ int main() {
 		quad.setTextures(&styleblit_tex_color_buffer, &styleImg_texture);
 		quad.draw();
 
+		// *************************************************************************************************************************
+		// ***************************************** STYLEBLIT BLENDING ************************************************************
 		// Re-bind the default framebuffer.
 		glBindFramebuffer(GL_FRAMEBUFFER, facemask_frame_buffer);
 		glDepthFunc(GL_ALWAYS);
@@ -1193,6 +1211,9 @@ int main() {
 		quad.setTextures(&styleblit_tex_color_buffer, &externalMask_texture);
 		quad.draw();*/
 
+
+		// ***********************************************************************************************************************
+		// ***************************************** BODY DEFORMATION ************************************************************
 		// Re-bind the default framebuffer.
 		glBindFramebuffer(GL_FRAMEBUFFER, body_frame_buffer);
 		glDepthFunc(GL_ALWAYS);
@@ -1208,6 +1229,9 @@ int main() {
 		grid.deformGrid(200);
 		grid.draw(); // Draw grid with deformations.
 
+
+		// ****************************************************************************************************************************
+		// ***************************************** BODY DEFORMATION MASK ************************************************************
 		glBindFramebuffer(GL_FRAMEBUFFER, bodymask_frame_buffer);
 		glDepthFunc(GL_ALWAYS);
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -1221,17 +1245,23 @@ int main() {
 		grid.setTextureID(&bodyMask_texture);
 		grid.draw(); // Draw grid with deformations.
 
+
+		// ***************************************************************************************************************************************
+		// ***************************************** FINAL MIXING AND PRINT TO SCREEN ************************************************************
 		// Re-bind the default framebuffer.
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		/*glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glDepthFunc(GL_ALWAYS);
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glViewport(0, 0, globalOpenglData.w_width, globalOpenglData.w_height);
 		glEnable(GL_DEPTH_TEST);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		mixer.draw(body_tex_color_buffer, blending_tex_color_buffer, bodymask_tex_color_buffer, facemask_tex_color_buffer, background_texture);
+		mixer.draw(body_tex_color_buffer, blending_tex_color_buffer, bodymask_tex_color_buffer, facemask_tex_color_buffer, background_texture);*/
 
-		/*glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+		// ***********************************************************************************************************************
+		// ***************************************** HAIR DEFORMATION ************************************************************
+		glBindFramebuffer(GL_FRAMEBUFFER, hair_frame_buffer);
 		glDepthFunc(GL_ALWAYS);
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glViewport(0, 0, globalOpenglData.w_width, globalOpenglData.w_height);
@@ -1242,8 +1272,25 @@ int main() {
 
 		grid_hair.setTextureID(&styleImg_texture);
 		grid_hair.deformGrid(200);
-		grid_hair.draw(); // Draw grid with deformations.*/
+		grid_hair.draw(); // Draw grid with deformations.
 
+		// ****************************************************************************************************************************
+		// ***************************************** HAIR DEFORMATION MASK ************************************************************
+		glBindFramebuffer(GL_FRAMEBUFFER, hairmask_frame_buffer);
+		glDepthFunc(GL_ALWAYS);
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glViewport(0, 0, globalOpenglData.w_width, globalOpenglData.w_height);
+		glEnable(GL_DEPTH_TEST);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		// grid.vertexDeformations[150].x = sin(tm.elapsed_milliseconds() / 1000.0f);
+
+		grid_hair.setTextureID(&styleImg_texture);
+		grid_hair.draw(); // Draw grid with deformations.
+
+
+		// ******************************************************************************************************************************************
+		// ***************************************** FINAL MIXING AND PRINT INTO TEXTURE ************************************************************
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glBindFramebuffer(GL_FRAMEBUFFER, styleblit_frame_buffer);
 		glDepthFunc(GL_ALWAYS);
