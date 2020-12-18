@@ -189,7 +189,7 @@ namespace FB_OpenGL {
 		Blending(Shader* _shader) : FullScreenQuad(_shader) {}
 		~Blending() {}
 
-		virtual void draw(GLuint A, GLuint B, GLuint mask, GLuint facialMask, GLuint background);
+		virtual void draw(GLuint A, GLuint B, GLuint mask, GLuint facialMask, GLuint background, GLuint faceMask_texture, GLuint hair_tex_color_buffer, GLuint hairmask_tex_color_buffer);
 
 		void setWidthHeight(int _width, int _height) { width = _width; height = _height; }
 

@@ -867,6 +867,10 @@ int main() {
 	cv::Mat styleImgBody_full = cv::imread(drawablePath + styleNameNoExtension + "_body.png", cv::IMREAD_UNCHANGED);
 	cv::Mat styleImgExternalMask = cv::imread(drawablePath + styleNameNoExtension + "_mask.png");
 	cv::Mat styleImgHairMask = cv::imread(drawablePath + styleNameNoExtension + "_hair_mask.png");
+
+	// Removing hair from the head mask.
+	cv::subtract(styleImgExternalMask, styleImgHairMask, styleImgExternalMask);
+
 	//cv::Mat styleImgExternalMask = cv::imread(root + "\\styles\\" + styleNameNoExtension + "_mask_mock.png");
 	cv::Mat styleImgBackground = cv::imread(drawablePath + styleNameNoExtension + "_bg.png");
 	std::string styleLandmarkStr((std::istreambuf_iterator<char>(styleLandmarkFile)), std::istreambuf_iterator<char>());
@@ -920,7 +924,7 @@ int main() {
 	makeDir(outputDirPath);
 
 	// Open a video file for writing (the MP4V codec works on OS X and Windows)
-	cv::VideoWriter out(outputDirPath + "\\result.mp4", cv::VideoWriter::fourcc('m', 'p', '4', 'v'), FPS, cv::Size(styleImg.cols, styleImg.rows));
+	cv::VideoWriter out(outputDirPath + "\\result.mp4", cv::VideoWriter::fourcc('m', 'p', '4', 'v'), FPS, cv::Size(styleImg.cols*3, styleImg.rows));
 	if (!out.isOpened()) {
 		std::cout << "Error! Unable to open video file for output." << std::endl;
 		system("pause");
@@ -977,6 +981,7 @@ int main() {
 	GLuint body_texture = 0;
 	GLuint externalMask_texture = 0;
 	GLuint background_texture = 0;
+	GLuint hairmask_texture = 0;
 
 	// Setup framebuffer for styleblit to make it render to a texture which we can further process.
 	GLuint styleblit_frame_buffer, styleblit_render_buffer_depth_stencil, styleblit_tex_color_buffer;
@@ -1037,11 +1042,24 @@ int main() {
 	std::vector<cv::Point2i> toAverage;
 	toAverage.push_back(styleLandmarks[36]);
 	toAverage.push_back(styleLandmarks[45]);
-	radius = (styleLandmarks[45].x - styleLandmarks[36].x) * 1.1f; 
+	radius = (styleLandmarks[45].x - styleLandmarks[36].x) * 1.0f; 
 	hair_markers.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(toAverage), radius, 270.0));
 	hair_markers.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(toAverage), radius, 315.0));
 	hair_markers.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(toAverage), radius, 225.0));
-	//hair_markers.push_back(styleLandmarks[45]);
+
+	hair_markers.push_back(styleLandmarks[0]);
+	hair_markers.push_back(styleLandmarks[1]);
+	hair_markers.push_back(styleLandmarks[2]);
+	hair_markers.push_back(styleLandmarks[3]);
+	hair_markers.push_back(styleLandmarks[4]);
+	hair_markers.push_back(styleLandmarks[5]);
+
+	hair_markers.push_back(styleLandmarks[11]);
+	hair_markers.push_back(styleLandmarks[12]);
+	hair_markers.push_back(styleLandmarks[13]);
+	hair_markers.push_back(styleLandmarks[14]);
+	hair_markers.push_back(styleLandmarks[15]);
+	hair_markers.push_back(styleLandmarks[16]);
 
 		// Currently used landmarks are the bottom left and bottom right corners, three points of the notional circle, and the mouth facial landmarks.
 	for (int k = 0; k < hair_markers.size(); ++k) {
@@ -1093,14 +1111,11 @@ int main() {
 		}
 
 		faceDetector.detectFacemarks(frame, faceDetResult);
-		if (i > 1) {
-			std::vector<cv::Point2i> targetLandmarks_temp = faceDetResult.second;
-			targetLandmarks = averageMarkers(targetLandmarks_temp, targetLandmarks);
-		} else {
-			targetLandmarks = faceDetResult.second;
-		}
-
+		std::vector<cv::Point2i> targetLandmarks_temp = targetLandmarks;
+		targetLandmarks = faceDetResult.second;
 		// alignTargetToStyle(frame, targetLandmarks, styleLandmarks);
+
+
 		
 		// Add 3 landmarks on the bottom of the notional circle
 		radius = (targetLandmarks[45].x - targetLandmarks[36].x) * 1.0f; // distance of outer eye corners + 80%
@@ -1108,6 +1123,11 @@ int main() {
 		targetLandmarks.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(std::vector<cv::Point2i>(targetLandmarks.begin() + 48, targetLandmarks.begin() + 67)), radius, 90.0));
 		//targetLandmarks.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(std::vector<cv::Point2i>(targetLandmarks.begin() + 48, targetLandmarks.begin() + 67)), radius, 135.0));
 		
+		if (i > 1) {
+			targetLandmarks[targetLandmarks.size() - 1].x = (targetLandmarks[targetLandmarks.size() - 1].x + targetLandmarks_temp[targetLandmarks.size() - 1].x) / 2;
+			targetLandmarks[targetLandmarks.size() - 1].y = (targetLandmarks[targetLandmarks.size() - 1].y + targetLandmarks_temp[targetLandmarks.size() - 1].y) / 2;
+		}
+
 		//targetLandmarks.push_back(cv::Point2i(0, frame.rows)); // left bottom corner
 		//targetLandmarks.push_back(cv::Point2i(frame.cols, frame.rows)); // right bottom corner
 
@@ -1126,9 +1146,29 @@ int main() {
 		toAverage.push_back(targetLandmarks[36]);
 		toAverage.push_back(targetLandmarks[45]);
 		radius = (targetLandmarks[45].x - targetLandmarks[36].x) * 0.9f;
-		hair_markers_target.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(toAverage), radius, 270.0));
-		hair_markers_target.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(toAverage), radius, 315.0));
-		hair_markers_target.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(toAverage), radius, 225.0));
+
+		float angle_of_eyes = cv::fastAtan2(targetLandmarks[45].x - targetLandmarks[36].x, targetLandmarks[45].y - targetLandmarks[36].y);
+		// std::cout << angle_of_eyes - 90.0f << std::endl;
+		//(targetLandmarks[45].x - targetLandmarks[36].x)/(targetLandmarks[45].y - targetLandmarks[36].y)
+
+		hair_markers_target.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(toAverage), radius, 270.0 - angle_of_eyes + 90.0f));
+		hair_markers_target.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(toAverage), radius, 315.0 - angle_of_eyes + 90.0f));
+		hair_markers_target.push_back(CartesianCoordinateSystem::getPointLyingOnCircle(CartesianCoordinateSystem::getAveragePoint(toAverage), radius, 225.0 - angle_of_eyes + 90.0f));
+
+
+		hair_markers_target.push_back(targetLandmarks[0]);
+		hair_markers_target.push_back(targetLandmarks[1]);
+		hair_markers_target.push_back(targetLandmarks[2]);
+		hair_markers_target.push_back(targetLandmarks[3]);
+		hair_markers_target.push_back(targetLandmarks[4]);
+		hair_markers_target.push_back(targetLandmarks[5]);
+
+		hair_markers_target.push_back(targetLandmarks[11]);
+		hair_markers_target.push_back(targetLandmarks[12]);
+		hair_markers_target.push_back(targetLandmarks[13]);
+		hair_markers_target.push_back(targetLandmarks[14]);
+		hair_markers_target.push_back(targetLandmarks[15]);
+		hair_markers_target.push_back(targetLandmarks[16]);
 
 		for (int k = 0; k < hair_markers_target.size(); ++k) {
 			int cp = hairControlPointsIDs[k];
@@ -1169,6 +1209,7 @@ int main() {
 			body_texture = FB_OpenGL::makeTexture(styleImgBody.clone());
 			externalMask_texture = FB_OpenGL::makeTexture(styleImgExternalMask.clone());
 			background_texture = FB_OpenGL::makeTexture(styleImgBackground.clone());
+			hairmask_texture = FB_OpenGL::makeTexture(styleImgHairMask.clone());
 
 		}
 		FB_OpenGL::updateTexture(blending_tex_color_buffer, stylizedImg.clone());
@@ -1245,20 +1286,7 @@ int main() {
 		grid.setTextureID(&bodyMask_texture);
 		grid.draw(); // Draw grid with deformations.
 
-
-		// ***************************************************************************************************************************************
-		// ***************************************** FINAL MIXING AND PRINT TO SCREEN ************************************************************
-		// Re-bind the default framebuffer.
-		/*glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		glDepthFunc(GL_ALWAYS);
-		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-		glViewport(0, 0, globalOpenglData.w_width, globalOpenglData.w_height);
-		glEnable(GL_DEPTH_TEST);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		mixer.draw(body_tex_color_buffer, blending_tex_color_buffer, bodymask_tex_color_buffer, facemask_tex_color_buffer, background_texture);*/
-
-
+		
 		// ***********************************************************************************************************************
 		// ***************************************** HAIR DEFORMATION ************************************************************
 		glBindFramebuffer(GL_FRAMEBUFFER, hair_frame_buffer);
@@ -1271,7 +1299,7 @@ int main() {
 		// grid.vertexDeformations[150].x = sin(tm.elapsed_milliseconds() / 1000.0f);
 
 		grid_hair.setTextureID(&styleImg_texture);
-		grid_hair.deformGrid(200);
+		grid_hair.deformGrid(300);
 		grid_hair.draw(); // Draw grid with deformations.
 
 		// ****************************************************************************************************************************
@@ -1285,8 +1313,21 @@ int main() {
 
 		// grid.vertexDeformations[150].x = sin(tm.elapsed_milliseconds() / 1000.0f);
 
-		grid_hair.setTextureID(&styleImg_texture);
+		grid_hair.setTextureID(&hairmask_texture);
 		grid_hair.draw(); // Draw grid with deformations.
+
+
+		// ***************************************************************************************************************************************
+		// ***************************************** FINAL MIXING AND PRINT TO SCREEN ************************************************************
+		// Re-bind the default framebuffer.
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glDepthFunc(GL_ALWAYS);
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glViewport(0, 0, globalOpenglData.w_width, globalOpenglData.w_height);
+		glEnable(GL_DEPTH_TEST);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		mixer.draw(body_tex_color_buffer, blending_tex_color_buffer, bodymask_tex_color_buffer, facemask_tex_color_buffer, background_texture, faceMask_texture, hair_tex_color_buffer, hairmask_tex_color_buffer);
 
 
 		// ******************************************************************************************************************************************
@@ -1298,20 +1339,23 @@ int main() {
 		glEnable(GL_DEPTH_TEST);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		mixer.draw(body_tex_color_buffer, blending_tex_color_buffer, bodymask_tex_color_buffer, facemask_tex_color_buffer, background_texture);
+		mixer.draw(body_tex_color_buffer, blending_tex_color_buffer, bodymask_tex_color_buffer, facemask_tex_color_buffer, background_texture, faceMask_texture, hair_tex_color_buffer, hairmask_tex_color_buffer);
 
 		SDL_GL_SwapWindow(globalOpenglData.mainWindow);
 
 		// Uncomment if you want to save the output NNF. Current implementation is leaking a bit, so be careful.
 		//if ( i == 99) {
-			//cv::Mat out_image = FB_OpenGL::get_ocv_img_from_gl_img(styleblit_tex_color_buffer);
+			cv::Mat out_image = FB_OpenGL::get_ocv_img_from_gl_img(styleblit_tex_color_buffer);
+			cv::Mat out_image_concat;
 		std::vector<cv::Point2i> selected_markers;
 		for (auto landmark_id : selected_landmark_ids) {
 			selected_markers.push_back(targetLandmarks[landmark_id]);
 		}
-			CartesianCoordinateSystem::drawRainbowLandmarks(frame, targetLandmarks);
-			//out << out_image;
-			Window::imgShow("Result", frame);
+			//CartesianCoordinateSystem::drawRainbowLandmarks(frame, hair_markers_target);
+			cv::hconcat(styleImg, out_image, out_image_concat);
+			cv::hconcat(out_image_concat, frame, out_image_concat);
+			out << out_image_concat;
+			Window::imgShow("Result", out_image_concat);
 			//cv::imwrite(root + "\\styles\\" + std::to_string(i) + "_body_stylized.png", out_image);
 		//}
 
