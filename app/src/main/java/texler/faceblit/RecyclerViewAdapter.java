@@ -14,6 +14,8 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 
+import texler.faceblit.fragments.StyleSelectorFragment;
+
 
 public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewAdapter.ViewHolder> {
 
@@ -26,7 +28,7 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewAdapte
     public RecyclerViewAdapter(Context context, ArrayList<String> imageNames) {
         this.mContext = context;
         this.mImageNames = imageNames;
-        this.mCallback = (IRecyclerViewCallback)context;
+        //this.mCallback = (IRecyclerViewCallback)context;
         this.mSelectedPosition = 0;
     }
 
@@ -57,7 +59,8 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewAdapte
                 notifyItemChanged(prevSelected);
                 notifyItemChanged(position);
 
-                mCallback.onStyleImageClick(imageName.split("_")[2]); // name without "recycler_view_" prefix
+                //mCallback.onStyleImageClick(imageName.split("_")[2]); // name without "recycler_view_" prefix
+                StyleSelectorFragment.getInstance().setStyleData(imageName.split("_")[2]);
             }
         });
     }

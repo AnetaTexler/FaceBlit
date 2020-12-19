@@ -1,22 +1,14 @@
 package texler.faceblit.fragments;
 
 import android.annotation.SuppressLint;
-import android.app.Notification;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Configuration;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Color;
-import android.graphics.ImageFormat;
-import android.graphics.Matrix;
-import android.graphics.Rect;
-import android.graphics.YuvImage;
 import android.graphics.drawable.ColorDrawable;
 import android.hardware.display.DisplayManager;
-import android.media.Image;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Build;
@@ -32,6 +24,7 @@ import android.view.animation.AlphaAnimation;
 import android.webkit.MimeTypeMap;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -42,7 +35,6 @@ import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageCapture;
 import androidx.camera.core.ImageCaptureException;
-import androidx.camera.core.ImageProxy;
 import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
@@ -57,9 +49,7 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.RequestOptions;
 import com.google.common.util.concurrent.ListenableFuture;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collections;
@@ -73,10 +63,8 @@ import java.util.concurrent.Executors;
 import texler.faceblit.MainActivity;
 import texler.faceblit.R;
 import texler.faceblit.StyleTransferAnalyzer;
-import texler.faceblit.utils.BitmapHelper;
 import texler.faceblit.utils.ViewExtensions;
 
-import static texler.faceblit.utils.BitmapHelper.landscapeToPortraitRotationRight;
 
 
 public class CameraFragment extends Fragment {
@@ -102,6 +90,8 @@ public class CameraFragment extends Fragment {
     private ProcessCameraProvider mCameraProvider = null;
     private DisplayManager mDisplayManager = null;
     private AlphaAnimation mAlphaAnimation = null;
+    private ImageView mImageView = null; // image view for displaying a stylization result
+    private TextView mTextView = null; // test view for displaying a stylization statistics
 
     /** Blocking camera operations are performed using this executor */
     private ExecutorService mCameraExecutor;
@@ -182,6 +172,8 @@ public class CameraFragment extends Fragment {
             }
         });
         mAlphaAnimation = new AlphaAnimation(1F, 0.4F);
+        mImageView = mContainer.findViewById(R.id.stylized_image_view);
+        mTextView = mContainer.findViewById(R.id.text_view);
     }
 
     @Override
@@ -287,10 +279,10 @@ public class CameraFragment extends Fragment {
         mImageAnalysis = new ImageAnalysis.Builder()
                 .setTargetAspectRatio(screenAspectRatio) // We request aspect ratio but no resolution (not possible to set both)
                 .setTargetRotation(rotation) // Set initial target rotation, we will have to call this again if rotation changes during the lifecycle of this use case
-                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST) // In this mode, the executor receives the last available frame from the camera at the time that the analyze() method is called. If the method takes longer than the latency of a single frame at the current FPS, some frames might be skipped
+                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST) // In this non-blocking mode, the executor receives the last available frame from the camera at the time that the analyze() method is called. If the method takes longer than the latency of a single frame at the current FPS, some frames might be skipped
                 //.setTargetResolution(STYLE_SIZE)
                 .build();
-        mImageAnalysis.setAnalyzer(mCameraExecutor, new StyleTransferAnalyzer(mLensFacing));
+        mImageAnalysis.setAnalyzer(mCameraExecutor, new StyleTransferAnalyzer(mLensFacing, mImageView, mTextView));
 
 
         // Must unbind the use-cases before rebinding them
@@ -477,11 +469,11 @@ public class CameraFragment extends Fragment {
      *  @return suitable aspect ratio
      */
     private int aspectRatio(int width, int height) {
-        double previewRatio = (double) Math.max(width, height) / Math.min(width, height);
-        if (Math.abs(previewRatio - RATIO_4_3_VALUE) <= Math.abs(previewRatio - RATIO_16_9_VALUE)) {
+        //double previewRatio = (double) Math.max(width, height) / Math.min(width, height);
+        //if (Math.abs(previewRatio - RATIO_4_3_VALUE) <= Math.abs(previewRatio - RATIO_16_9_VALUE)) {
             return AspectRatio.RATIO_4_3;
-        }
-        return AspectRatio.RATIO_16_9;
+        //}
+        //return AspectRatio.RATIO_16_9;
     }
 
     private void setGalleryThumbnail(Uri uri) {

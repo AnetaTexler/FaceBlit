@@ -6,13 +6,11 @@ public class JavaNativeInterface {
      */
     public static native byte[] getStylizedData(String modelPath,
                                                 String styleLandmarks,
-                                                byte[] lookupTableBytes,
+                                                byte[] lookupCubeBytes,
                                                 byte[] styleBytes,
                                                 byte[] targetBytes,
                                                 int w,
                                                 int h,
-                                                boolean rotateRight,
-                                                boolean rotateLeft,
-                                                boolean horizontalFlip,
+                                                int lensFacing,
                                                 boolean stylizeFaceOnly);
 }

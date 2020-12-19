@@ -96,10 +96,20 @@ public class ResourceHelper {
                 id_lm = R.raw.lm_laurinbust;
                 id_lut = R.raw.lut_laurinbust;
                 break;
+            case "lincolnbust":
+                id_img = R.drawable.style_lincolnbust;
+                id_lm = R.raw.lm_lincolnbust;
+                id_lut = R.raw.lut_lincolnbust;
+                break;
             case "malevich":
                 id_img = R.drawable.style_malevich;
                 id_lm = R.raw.lm_malevich;
                 id_lut = R.raw.lut_malevich;
+                break;
+            case "oilman":
+                id_img = R.drawable.style_oilman;
+                id_lm = R.raw.lm_oilman;
+                id_lut = R.raw.lut_oilman;
                 break;
             case "oldman":
                 id_img = R.drawable.style_oldman;

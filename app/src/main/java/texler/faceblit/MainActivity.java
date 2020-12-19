@@ -15,6 +15,7 @@ import android.widget.FrameLayout;
 
 import java.io.File;
 
+import texler.faceblit.fragments.StyleSelectorFragment;
 import texler.faceblit.utils.BitmapHelper;
 import texler.faceblit.utils.ResourceHelper;
 import texler.faceblit.utils.ViewExtensions;
@@ -24,7 +25,7 @@ import texler.faceblit.utils.ViewExtensions;
  * Main entry point into our app. This app follows the single-activity pattern, and all
  * functionality is implemented in the form of fragments.
  */
-public class MainActivity extends AppCompatActivity implements IRecyclerViewCallback {
+public class MainActivity extends AppCompatActivity {
 
     public static final String KEY_EVENT_ACTION = "key_event_action";
     public static final String KEY_EVENT_EXTRA = "key_event_extra";
@@ -82,30 +83,4 @@ public class MainActivity extends AppCompatActivity implements IRecyclerViewCall
             return appContext.getFilesDir();
         }
     }
-
-    @Override
-    public void onStyleImageClick(String imageName) {
-        // TODO create function instead...maybe new singleton class StylizationManager where will be the implementation
-        int[] resources = ResourceHelper.getRelatedResources(imageName); // [0] - id of a style img, [1] - id of its landmarks, [2] - id of its lookup table
-        String mStyleLandmarks = ResourceHelper.getLandmarksFromResource(resources[1], this);
-        BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inScaled = false; // suppress automatic scaling
-        Bitmap mStyleBitmap = BitmapFactory.decodeResource(getResources(), resources[0], options);
-        byte[] mStyleBitmapBytes = BitmapHelper.bitmapToBytes(mStyleBitmap);
-        byte[] mCubeBytes = ResourceHelper.getCubeFromResource(resources[2], this);
-        boolean mStyleChanged = true;
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
 }

@@ -45,8 +45,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="5dp"
-        app:layout_constraintTop_toTopOf="@id/stylized_image_view"
-        app:layout_constraintStart_toStartOf="@id/stylized_image_view"
+        app:layout_constraintTop_toTopOf="@id/view_finder"
+        app:layout_constraintStart_toStartOf="@id/view_finder"
         android:background="@android:color/transparent"
         android:textColor="@android:color/white"
         android:textSize="18sp" />
