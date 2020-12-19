@@ -66,7 +66,7 @@ int initOpenGL() {
 
 	if ((error = glGetError()) != GL_NO_ERROR)
 	{
-		std::cout << "Error initializing OpenGL!" << gluErrorString(error) << std::endl;
+		// std::cout << "Error initializing OpenGL!" << gluErrorString(error) << std::endl;
 		return -1;
 	}
 

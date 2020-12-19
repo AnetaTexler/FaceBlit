@@ -17,13 +17,11 @@ extern "C" JNIEXPORT jbyteArray JNICALL
 Java_texler_faceblit_JavaNativeInterface_getStylizedData(JNIEnv *env, jobject /*instance*/,
                                                          jstring modelPath,
                                                          jstring styleLandmarks,
-                                                         jbyteArray lookupTableBytes,
+                                                         jbyteArray lookupCubeBytes,
                                                          jbyteArray styleImgBytes,
                                                          jbyteArray targetImgBytes,
                                                          jint width, jint height,
-                                                         jboolean rotateRight,
-                                                         jboolean rotateLeft,
-                                                         jboolean horizontalFlip,
+                                                         jint lensFacing,
                                                          jboolean stylizeFaceOnly) {
 
     Log_e("HACK", "#######################");
@@ -40,11 +38,11 @@ Java_texler_faceblit_JavaNativeInterface_getStylizedData(JNIEnv *env, jobject /*
         env->GetByteArrayRegion(styleImgBytes, 0, styleLength, reinterpret_cast<jbyte*>(styleImgChars));
     }
 
-    unsigned char* lookupTableChars = nullptr;
-    if(lookupTableBytes != nullptr) {
-        int cubeLength = env->GetArrayLength(lookupTableBytes);
-        lookupTableChars = new unsigned char[cubeLength];
-        env->GetByteArrayRegion(lookupTableBytes, 0, cubeLength, reinterpret_cast<jbyte*>(lookupTableChars));
+    unsigned char* lookupCubeChars = nullptr;
+    if(lookupCubeBytes != nullptr) {
+        int cubeLength = env->GetArrayLength(lookupCubeBytes);
+        lookupCubeChars = new unsigned char[cubeLength];
+        env->GetByteArrayRegion(lookupCubeBytes, 0, cubeLength, reinterpret_cast<jbyte*>(lookupCubeChars));
     }
 
     Log_e("HACK", std::string() + "t_getByteArrays time: " + std::to_string(t_getByteArrays.elapsed_milliseconds()));
@@ -62,10 +60,11 @@ Java_texler_faceblit_JavaNativeInterface_getStylizedData(JNIEnv *env, jobject /*
     // --- Calling C method -----------------------------------------------------------------------------------------
     unsigned char* outImgChars = stylize(nativeModelPath,
                                          nativeStyleLandmarks,
-                                         lookupTableChars,
+                                         lookupCubeChars,
                                          styleImgChars,
                                          targetImgChars,
                                          width, height,
+                                         lensFacing,
                                          stylizeFaceOnly);
     // --------------------------------------------------------------------------------------------------------------
 
@@ -90,8 +89,8 @@ Java_texler_faceblit_JavaNativeInterface_getStylizedData(JNIEnv *env, jobject /*
         env->ReleaseByteArrayElements(styleImgBytes, (jbyte*)styleImgChars, JNI_ABORT);
     }
 
-    if(lookupTableBytes != nullptr){
-        env->ReleaseByteArrayElements(lookupTableBytes, (jbyte*)lookupTableChars, JNI_ABORT);
+    if(lookupCubeBytes != nullptr){
+        env->ReleaseByteArrayElements(lookupCubeBytes, (jbyte*)lookupCubeChars, JNI_ABORT);
     }
     // -------------------------------------------------------------------------------------------
 

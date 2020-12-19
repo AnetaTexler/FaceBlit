@@ -31,19 +31,28 @@ int MEAN = 128;
 
 
 // Function called only from JNI
-unsigned char* stylize(const char* modelPath, const char* styleLandmarkStr, unsigned char* lookupCubeData, unsigned char* styleData, unsigned char* targetData, int width, int height, bool stylizeFaceOnly)
+unsigned char* stylize(const char* modelPath, const char* styleLandmarkStr, unsigned char* lookupCubeData, unsigned char* styleData, unsigned char* targetData, int width, int height, int lensFacing, bool stylizeFaceOnly)
 {
-    cv::Mat targetImg = cv::Mat(height, width, CV_8UC4);
-    targetImg.data = targetData;
-    cvtColor(targetImg, targetImg, cv::COLOR_RGBA2BGR);
+	// INPUT IMAGE PREPARATION
+	cv::Mat targetImgLandscape = cv::Mat(width, height, CV_8UC4); // landscape
+	cv::Mat targetImgPortrait = cv::Mat(height, width, CV_8UC4); // portrait
+	cv::Mat targetImg = cv::Mat(height, width, CV_8UC4); // correct input
+	targetImgLandscape.data = targetData;
+	cvtColor(targetImgLandscape, targetImgLandscape, cv::COLOR_RGBA2BGR);
 
+	// rotation and flip - not in-place!
+	if (lensFacing == 0) // front camera
+	{
+		cv::rotate(targetImgLandscape, targetImgPortrait, cv::ROTATE_90_CLOCKWISE); // rotate right
+		cv::flip(targetImgPortrait, targetImg, 1); // not possible to flip in-place (leads to segfault)
+	}
+	else // back camera
+		cv::rotate(targetImgLandscape, targetImg, cv::ROTATE_90_COUNTERCLOCKWISE); // rotate left
+
+
+	// LANDMARK DETECTION
     if (StyleCache::getInstance().dlibDetector == nullptr)
-    {
         StyleCache::getInstance().dlibDetector = new DlibDetector(std::string(modelPath) + "/shape_predictor_68_face_landmarks.dat"); 
-    }
-
-    //facemarkDetector.prepareImage(targetImg, targetImg);
-    //cv::resize(targetImg, targetImg, cv::Size(width / 2, height / 2));
 
     std::pair<cv::Rect, std::vector<cv::Point2i>> detectionResult; // face and its landmarks
 	std::vector<cv::Point2i> targetLandmarks;
@@ -58,10 +67,9 @@ unsigned char* stylize(const char* modelPath, const char* styleLandmarkStr, unsi
 		return NULL;
 
 
+	// GUIDES AND STYLIZATION
     if (styleLandmarkStr != NULL)
-	{ 
 	    StyleCache::getInstance().styleLandmarks = getLandmarkPointsFromString(styleLandmarkStr);
-	}
 
 	if (styleData != NULL)
 	{
@@ -74,9 +82,7 @@ unsigned char* stylize(const char* modelPath, const char* styleLandmarkStr, unsi
 
 	TimeMeasure t_stylePosGuide;
 	if (StyleCache::getInstance().stylePosGuide.empty())
-	{
 		StyleCache::getInstance().stylePosGuide = getGradient(width, height, false); // style positional guide - G_pos
-	}
 	Log_i("FACEBLIT", std::string() + "StylePosGuide time: " + std::to_string(t_stylePosGuide.elapsed_milliseconds()) + " ms");
 
 	TimeMeasure t_targetPosGuide;
@@ -85,9 +91,7 @@ unsigned char* stylize(const char* modelPath, const char* styleLandmarkStr, unsi
 
 	TimeMeasure t_styleAppGuide;
 	if (styleData != NULL)
-	{
 		StyleCache::getInstance().styleAppGuide = getAppGuide(StyleCache::getInstance().styleImg, true); // style appearance guide - G_app
-	}
 	Log_i("FACEBLIT", std::string() + "StyleAppGuide time: " + std::to_string(t_styleAppGuide.elapsed_milliseconds()) + " ms");
 
 	TimeMeasure t_targetAppGuide;

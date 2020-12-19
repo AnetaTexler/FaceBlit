@@ -141,6 +141,37 @@ void createInputImages_LVLS2(const cv::Mat& style, cv::Mat& style_base_only, cv:
 }
 
 
+cv::Mat cropWidth(const cv::Mat& image, const int dstWidth, const int centerX)
+{
+	int x = std::max(0, centerX - dstWidth / 2);
+	if (x + dstWidth > image.cols)
+		x = image.cols - dstWidth;
+
+	return cv::Mat(image, cv::Rect(x, 0, dstWidth, image.rows));
+}
+
+cv::Mat extendHeight(const cv::Mat& image, const int dstHeight)
+{
+	cv::Mat result = cv::Mat(dstHeight, image.cols, image.type());
+	int totalRowsToAdd = dstHeight - image.rows;
+	cv::Mat firstRow = image.row(0);
+	cv::Mat lastRow = image.row(image.rows - 1);
+
+	// duplicate the first row (totalRowsToAdd / 2)-times
+	for (int i = 0; i < totalRowsToAdd / 2; i++)
+		firstRow.copyTo(result.row(i));
+
+	// copy the original image under the duplicated first rows
+	image.copyTo(result(cv::Rect(0, totalRowsToAdd / 2, image.cols, image.rows)));
+
+	// duplicate the last row (totalRowsToAdd / 2)-times
+	for (int i = totalRowsToAdd / 2 + image.rows; i < result.rows; i++)
+		lastRow.copyTo(result.row(i));
+
+	return result;
+}
+
+
 
 
 // ############################################################################
@@ -515,7 +546,160 @@ int xmain()
 
 
 // ############################################################################
-// #				STYLIZE A SET OF IMAGES IN A DIRECTORY					  #
+// #					STYLIZE FFHQ dataset			 					  #
+// ############################################################################
+
+int main(int argc, char* argv[])
+{
+	// *** PARAMETERS TO SET ***********************************************************************************************************
+	const std::string root = "C:\\Users\\Aneta\\Desktop\\FFHQ_sub";
+	//const std::string root = std::filesystem::current_path().string();
+
+	std::string styleName = "watercolorgirl.png";					// name of a style image from dir root/styles
+	int NNF_patchsize = 3;							// voting patch size (0 for no voting) - voting on RGB with denoised NNF
+	const bool transparentBG = false;						// choice of background (true = transparent bg, false = target image bg)
+	const bool stylizeBG = false;							// true - stylized face with appearace is blended into the stylized target without appearance, false - face is blended into the original target
+	// *********************************************************************************************************************************
+	if (argc > 1) // arguments were entered (first is the program name)
+	{
+		styleName = argv[1];
+		NNF_patchsize = std::stoi(argv[2]);
+	}
+
+	DlibDetector faceDetector("facemark_models\\shape_predictor_68_face_landmarks.dat");
+	std::pair<cv::Rect, std::vector<cv::Point2i>> faceDetResult; // face and its landmarks
+
+	std::string styleNameNoExtension = styleName.substr(0, styleName.find_last_of("."));
+	std::string outputFileName = "out_" + styleNameNoExtension + "_" + std::to_string(NNF_patchsize) + "x" + std::to_string(NNF_patchsize) + "voting" 
+		+ (stylizeBG ? "_bg" : "_face_noGapp") + ".png";   // output file name with extension
+
+
+	// --- READ STYLE FILES --------------------------------------------------
+	cv::Mat styleImg = cv::imread(root + "\\styles\\" + styleName);
+	std::ifstream styleLandmarkFile(root + "\\styles\\" + styleNameNoExtension + "_lm.txt");
+	std::string styleLandmarkStr((std::istreambuf_iterator<char>(styleLandmarkFile)), std::istreambuf_iterator<char>());
+	styleLandmarkFile.close();
+	cv::Mat lookUpCube = loadLookUpCube(root + "\\styles\\" + styleNameNoExtension + "_lut_faceStyleGapp.bytes");
+	// -----------------------------------------------------------------------
+	std::vector<cv::Point2i> styleFaceLandmarks = getLandmarkPointsFromString(styleLandmarkStr.c_str());
+
+	//CartesianCoordinateSystem::drawLandmarks(styleImg, styleFaceLandmarks, cv::Scalar(0, 255, 0), "circles", root + "\\styles\\LM_" + styleName);
+	//visualizeLookUpCube(lookUpCube, root + "\\styles\\" + styleNameNoExtension + "_cube_vis\\");
+
+	for (const auto& entryI : std::filesystem::directory_iterator(root)) // for each dir in root
+	{
+		int inputStrPos;
+		if (entryI.is_directory() && (inputStrPos = entryI.path().filename().string().find("input")) != std::string::npos) // only dirs containing "input" in their names
+		{
+			std::string outputDirName = entryI.path().filename().string().replace(inputStrPos, 5, "output") + "_" + styleNameNoExtension;
+			makeDir(root + "\\" + outputDirName);
+
+			std::vector<std::filesystem::directory_entry> entryJvector; // fill the vector due to a parallel processing
+			for (const std::filesystem::directory_entry& entryJ : std::filesystem::directory_iterator(root + "\\" + entryI.path().filename().string())) // for each image file in root/input
+			{
+				//if (entryJ.path().filename().extension().string() == ".png" || entryJ.path().filename().extension().string() == ".jpg")
+				if (entryJ.path().filename().string() == "08451.png")
+					entryJvector.push_back(entryJ); // vector of the target file paths
+			}
+
+			//#pragma omp parallel for
+			for (int i = 0; i < entryJvector.size(); i++) // for each image file in root/input
+			{
+				const std::filesystem::directory_entry& entryJ = entryJvector[i];
+				const std::string targetFilePath = entryJ.path().string();
+				const std::string targetFileName = entryJ.path().filename().string();
+
+				makeDir(root + "\\" + outputDirName + "\\" + targetFileName.substr(0, targetFileName.find_last_of(".")));
+
+				// --- READ TARGET FILES --------------------------------------------------
+				cv::Mat targetImg = cv::imread(targetFilePath);
+				cv::Mat targetFaceMask = cv::imread(root + "\\mask" + entryI.path().filename().string().erase(inputStrPos, 5) + "_face\\" + targetFileName);
+				cv::Mat targetSkinMask = cv::imread(root + "\\mask" + entryI.path().filename().string().erase(inputStrPos, 5) + "_skin\\" + targetFileName);
+				cv::Mat targetHairMask = cv::imread(root + "\\mask" + entryI.path().filename().string().erase(inputStrPos, 5) + "_hair\\" + targetFileName);
+				cv::Mat targetFGMask = cv::imread(root + "\\mask" + entryI.path().filename().string().erase(inputStrPos, 5) + "_fg\\" + targetFileName);
+
+				//std::ifstream targetLandmarkFile(entryJ.path().string() + "\\!face.txt");
+				//std::string targetLandmarkStr((std::istreambuf_iterator<char>(targetLandmarkFile)), std::istreambuf_iterator<char>());
+				//targetLandmarkFile.close();
+				// -----------------------------------------------------------------------
+				//std::vector<cv::Point2i> targetFaceLandmarks = getLandmarkPointsFromString(targetLandmarkStr.c_str());
+				
+				bool success = faceDetector.detectFacemarks(targetImg, faceDetResult);
+				if (!success)
+				{
+					Log_e("FACEBLIT", "Landmarks detection failed for " + targetFilePath);
+					continue;
+				}
+				std::vector<cv::Point2i> targetFaceLandmarks = faceDetResult.second;
+
+				// Generate guidance channels
+				cv::Mat stylePosGuide = getGradient(targetImg.cols, targetImg.rows, false); // G_pos
+				cv::Mat targetPosGuide = MLSDeformation(stylePosGuide, styleFaceLandmarks, targetFaceLandmarks); // G_pos for face
+				cv::Mat styleAppGuide = getAppGuide(styleImg, true); // G_app
+				cv::Mat targetAppGuide = getAppGuide(targetImg, false); // G_app
+				targetAppGuide = grayHistMatching(targetAppGuide, styleAppGuide);
+
+				//styleAppGuide = cv::Mat(cv::imread("C:\\Users\\Aneta\\Desktop\\Guides\\output_" + styleNameNoExtension + "_Gapp\\_src_Gapp.png", cv::IMREAD_GRAYSCALE), cv::Rect(3072, 0, 768, 1024));
+				//targetAppGuide = cv::imread("C:\\Users\\Aneta\\Desktop\\Guides\\output_" + styleNameNoExtension + "_Gapp\\" + targetFileName.substr(0, targetFileName.find_last_of(".")) + "_align.png", cv::IMREAD_GRAYSCALE);
+
+				//cv::resize(styleAppGuide, styleAppGuide,cv::Size(), 1.024, 1.024);
+				//cv::imwrite(root + "\\styleGapp.png", styleAppGuide);
+				//cv::imwrite(root + "\\targetGapp00064.png", targetAppGuide);
+				//styleAppGuide = extendHeight(styleAppGuide, 1024);
+				//targetAppGuide = extendHeight(targetAppGuide, 1024);
+
+				//cv::imwrite("C:\\Users\\Aneta\\Desktop\\FaceBlit_paper\\figs\\Met_guides\\sp.png", stylePosGuide);
+				//cv::imwrite("C:\\Users\\Aneta\\Desktop\\FaceBlit_paper\\figs\\Met_guides\\tp.png", targetPosGuide);
+				//cv::imwrite("C:\\Users\\Aneta\\Desktop\\FaceBlit_paper\\figs\\Res_experimentHM\\ta.png", targetAppGuide);
+
+				//cv::Mat targetBase, targetDetail;
+				//createInputImages_LVLS2(targetImg, targetBase, targetDetail);
+				//cv::imwrite("C:\\Users\\Aneta\\Desktop\\FaceBlit_paper\\figs\\Met_gapp\\base.png", targetBase);
+				//cv::imwrite("C:\\Users\\Aneta\\Desktop\\FaceBlit_paper\\figs\\Met_gapp\\detail.png", targetDetail);
+
+				//cv::Mat grayImg;
+				//cv::cvtColor(targetBase, grayImg, cv::COLOR_BGR2GRAY);
+				//cv::imwrite("C:\\Users\\Aneta\\Desktop\\FaceBlit_paper\\figs\\Met_gapp\\gray_base.png", grayImg);
+				//cv::cvtColor(targetDetail, grayImg, cv::COLOR_BGR2GRAY);
+				//cv::imwrite("C:\\Users\\Aneta\\Desktop\\FaceBlit_paper\\figs\\Met_gapp\\gray_detail.png", grayImg);
+
+				//cv::Mat lookUpCube = getLookUpCube(stylePosGuide, styleAppGuide); // 3D table that maps Pos_Red, Pos_Green, App values to coordinates u, v in style
+				//saveLookUpCube(lookUpCube, root + "\\styles\\" + styleNameNoExtension + "_lut_faceStyleGapp.bytes");
+
+				// StyleBlit - FACE
+				cv::Mat stylizedImg, stylizedImgNoApp, stylizedImgNoPos;
+				//cv::Mat blackImg = cv::Mat::zeros(targetAppGuide.size(), targetAppGuide.type());
+				if (NNF_patchsize > 0)
+				{
+					stylizedImg = styleBlit_voting(stylePosGuide, targetPosGuide, styleAppGuide, targetAppGuide, lookUpCube, styleImg, cv::Rect2i(0, 0, targetImg.cols, targetImg.rows), NNF_patchsize);
+					stylizedImgNoApp = styleBlit_voting(stylePosGuide, targetPosGuide, cv::Mat(), cv::Mat(), lookUpCube, styleImg, cv::Rect2i(0, 0, targetImg.cols, targetImg.rows), NNF_patchsize, 10, 10, 0);
+					//stylizedImgNoPos = styleBlit_voting(stylePosGuide, targetPosGuide, styleAppGuide, targetAppGuide, lookUpCube, styleImg, cv::Rect2i(0, 0, targetImg.cols, targetImg.rows), NNF_patchsize, 10, 0, 2);
+				}
+				else
+					stylizedImg = styleBlit(stylePosGuide, targetPosGuide, styleAppGuide, targetAppGuide, lookUpCube, styleImg, cv::Rect2i(0, 0, targetImg.cols, targetImg.rows));
+				
+				cv::Mat alphaBlendFace;
+				if (stylizeBG)
+					alphaBlendFace = alphaBlendFG_BG(stylizedImg, stylizedImgNoApp, targetFaceMask, 25.0); // blend the face into the stylized image without appearance
+				else 
+					alphaBlendFace  = alphaBlendFG_BG(stylizedImgNoApp, targetImg, targetFaceMask, 25.0); // blend the face into the original target
+
+				//alphaBlendFace = alphaBlendFG_BG(stylizedImgNoApp, targetImg, targetFaceMask, 25.0); // blend the face into the original target
+				//cv::imwrite("C:\\Users\\Aneta\\Desktop\\FaceBlit_paper\\figs\\Res_experimentG\\" + outputFileName, alphaBlendFace);
+				cv::imwrite(root + "\\" + outputDirName + "\\" + targetFileName.substr(0, targetFileName.find_last_of(".")) + "\\" + outputFileName, alphaBlendFace);
+				
+			}
+		}
+	}
+
+	//system("pause");
+	return 0;
+}
+
+
+
+// ############################################################################
+// #				STYLIZE A DATASET (FaceGAN)								  #
 // ############################################################################
 
 
@@ -525,16 +709,16 @@ int xxxmain()
 	const std::string root = "C:\\Users\\Aneta\\Desktop\\faces_test_subset";
 	//const std::string root = std::filesystem::current_path().string();
 
-	const std::string styleName = "watercolorgirl.png";					// name of a style image from dir root/styles
-	const int NNF_patchsize = 3;							// voting patch size (0 for no voting)
+	const std::string styleName = "malevich.png";					// name of a style image from dir root/styles
+	const int NNF_patchsize = 3;							// voting patch size (0 for no voting) - voting on RGB with denoised NNF
 	const bool transparentBG = false;						// choice of background (true = transparent bg, false = target image bg)
 	const bool faceStylization = true;
 	const bool hairStylization = false;						
 	// *********************************************************************************************************************************
 
 	std::string styleNameNoExtension = styleName.substr(0, styleName.find_last_of("."));
-	std::string outputName = "out_" + styleNameNoExtension + "_" + std::to_string(NNF_patchsize) + "smnnf" 
-		+ (faceStylization ? "_face" : "") + (hairStylization ? "_hair" : "") + ".png";   // output file name with extension
+	std::string outputName = "out_" + styleNameNoExtension + "_" + std::to_string(NNF_patchsize) + "x" + std::to_string(NNF_patchsize) + "voting"
+		+ (faceStylization ? "_oval" : "") + (hairStylization ? "_hair" : "") + ".png";   // output file name with extension
 	
 	
 	// --- READ STYLE FILES --------------------------------------------------
@@ -554,31 +738,6 @@ int xxxmain()
 	//	cv::circle(styleHairMask, styleHairLandmarks[i], 5, cv::Scalar(0, 255, 0), 2);
 	//Window::imgShow("shm", styleHairMask);
 	
-
-
-	//FacemarkDetector facemarkDetector("facemark_models\\lbpcascade_frontalface.xml", 1.4, 3, "facemark_models\\lbf_landmarks.yaml");
-	//facemarkDetector.prepareImage(styleImg, styleImg);
-	//cv::resize(styleImg, styleImg, cv::Size(styleImg.cols/2, styleImg.rows/2));
-
-	//std::pair<cv::Rect, std::vector<cv::Point2i>> faceDetResult; // face and its landmarks
-	/*
-	TimeMeasure tm;
-	bool success = facemarkDetector.detectFacemarks(styleImg, faceDetResult);
-	std::vector<cv::Point2i> landmarks = faceDetResult.second;
-	std::cout << "Landmarks: " << tm.elapsed_milliseconds() << " ms" << std::endl;
-
-	//tm.reset();
-	//success = facemarkDetector.detectFacemarks(styleImg, faceDetResult);
-	//landmarks = faceDetResult.second;
-	//std::cout << "Landmarks: " << tm.elapsed_milliseconds() << " ms" << std::endl;
-
-	Window::imgShow("Style", styleImg);
-	system("pause");
-	return 0;
-	*/
-
-
-
 	for (const auto& entryI : std::filesystem::directory_iterator(root)) // for each dir in root
 	{
 		int inputStrPos;
@@ -624,23 +783,13 @@ int xxxmain()
 				if (styleHairLandmarks.size() != targetHairLandmarks.size())
 					std::cout << "ERROR: Number of style's and target's hair points are not equal. Input: " << entryJ.path().filename().string() << std::endl;
 
-
 				// Merge face and hair landmarks - in case of face and hair simultaneous stylization
-				//std::vector<cv::Point2i> stylePortraitLandmarks = styleFaceLandmarks;
-				//stylePortraitLandmarks.insert(stylePortraitLandmarks.end(), styleHairLandmarks.begin(), styleHairLandmarks.end());
-				//std::vector<cv::Point2i> targetPortraitLandmarks = targetFaceLandmarks;
-				//targetPortraitLandmarks.insert(targetPortraitLandmarks.end(), targetHairLandmarks.begin(), targetHairLandmarks.end());
-
-
-				//facemarkDetector.prepareImage(targetImg, targetImg);
-				//bool success = facemarkDetector.detectFacemarks(targetImg, faceDetResult);
-				//std::vector<cv::Point2i> targetLandmarks = faceDetResult.second;
+				std::vector<cv::Point2i> stylePortraitLandmarks = styleFaceLandmarks;
+				stylePortraitLandmarks.insert(stylePortraitLandmarks.end(), styleHairLandmarks.begin(), styleHairLandmarks.end());
+				std::vector<cv::Point2i> targetPortraitLandmarks = targetFaceLandmarks;
+				targetPortraitLandmarks.insert(targetPortraitLandmarks.end(), targetHairLandmarks.begin(), targetHairLandmarks.end());
 
 				//Window::imgShow("img", targetImg);
-
-				//cv::Mat faceMask = getSkinMask(targetImg, targetLandmarks);
-				//cv::imwrite(root + "\\" + outputDirName + "\\" + entryJ.path().filename().string() + "\\skin_mask.png", faceMask);
-				//Window::imgShow("faceMask", faceMask);
 
 				//CartesianCoordinateSystem::drawRainbowLandmarks(targetImg, targetLandmarks, entryJ.path().string() + "\\!lm.png"); // TODO: copy target first!!
 				//CartesianCoordinateSystem::drawRainbowLandmarks(styleImg, styleLandmarks, root + "\\styles\\" + styleName + "_lm.png");
@@ -648,7 +797,7 @@ int xxxmain()
 				// Generate guidance channels
 				cv::Mat stylePosGuide = getGradient(targetImg.cols, targetImg.rows, false); // G_pos
 				cv::Mat targetFacePosGuide = MLSDeformation(stylePosGuide, styleFaceLandmarks, targetFaceLandmarks); // G_pos for face
-				cv::Mat targetHairPosGuide = MLSDeformation(stylePosGuide, styleHairLandmarks, targetHairLandmarks); // G_pos for hair
+				cv::Mat targetHairPosGuide;// = MLSDeformation(stylePosGuide, styleHairLandmarks, targetHairLandmarks); // G_pos for hair
 				cv::Mat styleAppGuide = getAppGuide(styleImg, true); // G_app
 				cv::Mat targetAppGuide = getAppGuide(targetImg, false); // G_app
 				targetAppGuide = grayHistMatching(targetAppGuide, styleAppGuide);
@@ -846,7 +995,7 @@ int xxmain()
 }
 
 
-int main() {
+int xxxxmain() {
 	// Don't forget to change this path before you start.
 	const std::string root = "C:\\Work\\TestDataset\\Videos";
 	const std::string drawablePath = "..\\app\\src\\main\\res\\drawable\\";
