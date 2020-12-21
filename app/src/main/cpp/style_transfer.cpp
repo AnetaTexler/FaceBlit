@@ -34,9 +34,9 @@ int MEAN = 128;
 unsigned char* stylize(const char* modelPath, const char* styleLandmarkStr, unsigned char* lookupCubeData, unsigned char* styleData, unsigned char* targetData, int width, int height, int lensFacing, bool stylizeFaceOnly)
 {
 	// INPUT IMAGE PREPARATION
-	cv::Mat targetImgLandscape = cv::Mat(width, height, CV_8UC4); // landscape
-	cv::Mat targetImgPortrait = cv::Mat(height, width, CV_8UC4); // portrait
-	cv::Mat targetImg = cv::Mat(height, width, CV_8UC4); // correct input
+	cv::Mat targetImgLandscape = cv::Mat(height, width, CV_8UC4); // landscape
+	cv::Mat targetImgPortrait = cv::Mat(width, height, CV_8UC4); // portrait
+	cv::Mat targetImg = cv::Mat(width, height, CV_8UC4); // correct input
 	targetImgLandscape.data = targetData;
 	cvtColor(targetImgLandscape, targetImgLandscape, cv::COLOR_RGBA2BGR);
 
@@ -49,6 +49,7 @@ unsigned char* stylize(const char* modelPath, const char* styleLandmarkStr, unsi
 	else // back camera
 		cv::rotate(targetImgLandscape, targetImg, cv::ROTATE_90_COUNTERCLOCKWISE); // rotate left
 
+	cv::resize(targetImg, targetImg, cv::Size(768, 1024)); // Resize to fit the styleImg size
 
 	// LANDMARK DETECTION
     if (StyleCache::getInstance().dlibDetector == nullptr)
