@@ -309,22 +309,190 @@ cv::Mat getAppGuide(const cv::Mat& image, bool stretchHist)
 }
 
 
+float skinError(const cv::Vec3b& samplePixelCol, const cv::Vec3b& currPixelCol, const cv::Point2i& samplePixelPos, const cv::Point2i& currPixelPos, bool use_YUV, float max_dist) 
+{
+	float sigma = 0.5;
+	float sigmaSquared = pow(sigma, 2);
+
+	cv::Vec3b colDiff = samplePixelCol - currPixelCol;
+	float colDiffSumSquared = pow(colDiff[1], 2) + pow(colDiff[2], 2);
+	if (!use_YUV) 
+	{
+		colDiffSumSquared += pow(colDiff[0], 2);
+	}
+
+	cv::Point2i distDiff = samplePixelPos - currPixelPos;
+	//float posDiffSumSquared = pow(distDiff.x, 2) + pow(distDiff.y, 2);
+	//float posDiffSumAbs = abs(distDiff.x) + abs(distDiff.x);
+	//posDiffSumAbs /= (max_dist*1.5);
+	//posDiffSumAbs = (posDiffSumAbs + 1) * 250;
+	//std::cout << posDiffSumSquared << ", " << colDiffSumSquared << std::endl;
+
+	return colDiffSumSquared; // +posDiffSumAbs;
+	//return exp((-1* colDiffSumSquared) / sigmaSquared);
+}
+
+cv::Vec3b sampleColors(const cv::Mat& image, const cv::Point2i& samplePoint) 
+{
+	std::vector<cv::Vec3b> sampledColors;
+	sampledColors.push_back(image.at<cv::Vec3b>(samplePoint));
+	sampledColors.push_back(image.at<cv::Vec3b>(samplePoint + cv::Point2i(-5, -5)));
+	sampledColors.push_back(image.at<cv::Vec3b>(samplePoint + cv::Point2i(-5, 0)));
+	sampledColors.push_back(image.at<cv::Vec3b>(samplePoint + cv::Point2i(-5, 5)));
+	sampledColors.push_back(image.at<cv::Vec3b>(samplePoint + cv::Point2i(0, -5)));
+	sampledColors.push_back(image.at<cv::Vec3b>(samplePoint + cv::Point2i(0, 0)));
+	sampledColors.push_back(image.at<cv::Vec3b>(samplePoint + cv::Point2i(0, 5)));
+	sampledColors.push_back(image.at<cv::Vec3b>(samplePoint + cv::Point2i(5, -5)));
+	sampledColors.push_back(image.at<cv::Vec3b>(samplePoint + cv::Point2i(5, 0)));
+	sampledColors.push_back(image.at<cv::Vec3b>(samplePoint + cv::Point2i(5, 5)));
+	
+	int accB = 0;
+	int accG = 0;
+	int accR = 0;
+	for (int i = 0; i < sampledColors.size(); i++) 
+	{
+		accB += sampledColors[i][0];
+		accG += sampledColors[i][1];
+		accR += sampledColors[i][2];
+	}
+
+	return cv::Vec3b(accB / sampledColors.size(), accG / sampledColors.size(), accR / sampledColors.size());
+}
+
+
 cv::Mat getSkinMask(const cv::Mat& image, const std::vector<cv::Point2i>& landmarks)
 {
-	///*
-	cv::Mat resultImg = cv::Mat::zeros(image.rows, image.cols, CV_32FC1);
-
 	cv::Point2i faceContourPoints[17];
 	std::copy(landmarks.begin(), landmarks.begin() + 17, faceContourPoints);
+
+	int faceWidth = (faceContourPoints[16].x - faceContourPoints[0].x);
+	
+	cv::Rect foreheadROI(faceContourPoints[0].x,
+						 MAX(faceContourPoints[0].y - (faceWidth * 0.75), 0),
+						 faceWidth,
+						 faceWidth * 0.75);
+
+	cv::Mat foreheadRect;
+	cv::Mat(image, foreheadROI).copyTo(foreheadRect);
+
+	cv::Point2i samplePoint_1((faceWidth/4)*1, foreheadRect.rows - faceWidth/4);
+	cv::Point2i samplePoint_2((faceWidth/4)*2, foreheadRect.rows - faceWidth/4);
+	cv::Point2i samplePoint_3((faceWidth/4)*3, foreheadRect.rows - faceWidth/4);
+
+
+	bool USE_YUV = true;
+	float SKIN_ERROR_THRESHOLD = 50; // roughly 500-2000 for RGB; roughly 20-200 for YUV
+	if (USE_YUV) 
+	{
+		cv::cvtColor(foreheadRect, foreheadRect, cv::COLOR_BGR2YUV);
+	}
+	
+	cv::Vec3b sample_1_color = sampleColors(foreheadRect, samplePoint_1);
+	cv::Vec3b sample_2_color = sampleColors(foreheadRect, samplePoint_2);
+	cv::Vec3b sample_3_color = sampleColors(foreheadRect, samplePoint_3);
+
+	cv::Mat resultforehead = cv::Mat::zeros(foreheadRect.rows, foreheadRect.cols, CV_32FC1);
+
+	// For sample point 1
+	for (int row = 0; row < foreheadRect.rows; row++)
+	{
+		for (int col = 0; col < (faceWidth / 4) * 2; col++)
+		{
+			cv::Vec3b currentPixelColor = foreheadRect.at<cv::Vec3b>(row, col);
+			if (skinError(sample_1_color, currentPixelColor, samplePoint_1, cv::Point2i(col, row), USE_YUV, faceWidth) < SKIN_ERROR_THRESHOLD)
+			{
+				resultforehead.at<float>(row, col) = 1;
+			}
+		}
+	}
+	// For sample point 2
+	for (int row = 0; row < foreheadRect.rows; row++)
+	{
+		for (int col = (faceWidth / 4); col < (faceWidth / 4) * 3; col++)
+		{
+			cv::Vec3b currentPixelColor = foreheadRect.at<cv::Vec3b>(row, col);
+			if (skinError(sample_2_color, currentPixelColor, samplePoint_2, cv::Point2i(col, row), USE_YUV, faceWidth) < SKIN_ERROR_THRESHOLD)
+			{
+				resultforehead.at<float>(row, col) = 1;
+			}
+		}
+	}
+	// For sample point 3
+	for (int row = 0; row < foreheadRect.rows; row++)
+	{
+		for (int col = (faceWidth / 4) * 2; col < foreheadRect.cols; col++)
+		{
+			cv::Vec3b currentPixelColor = foreheadRect.at<cv::Vec3b>(row, col);
+			if (skinError(sample_3_color, currentPixelColor, samplePoint_3, cv::Point2i(col, row), USE_YUV, faceWidth) < SKIN_ERROR_THRESHOLD)
+			{
+				resultforehead.at<float>(row, col) = 1;
+			}
+		}
+	}
+
+	
+	/* // DEBUG
+	if (USE_YUV)
+	{
+		cv::cvtColor(foreheadRect, foreheadRect, cv::COLOR_YUV2BGR);
+	}
+	cv::circle(foreheadRect, samplePoint_1, 4, cv::Scalar(0, 255, 0), 2);
+	cv::circle(foreheadRect, samplePoint_2, 4, cv::Scalar(0, 255, 0), 2);
+	cv::circle(foreheadRect, samplePoint_3, 4, cv::Scalar(0, 255, 0), 2);
+	for (int row = 0; row < foreheadRect.rows; row++)
+	{
+		for (int col = 0; col < foreheadRect.cols; col++)
+		{
+			foreheadRect.at<cv::Vec3b>(row, col)[0] = foreheadRect.at<cv::Vec3b>(row, col)[0] * resultforehead.at<float>(row, col);
+			foreheadRect.at<cv::Vec3b>(row, col)[1] = foreheadRect.at<cv::Vec3b>(row, col)[1] * resultforehead.at<float>(row, col);
+		}
+	}*/
+
+	/* // DEBUG
+	for (int row = 0; row < foreheadYUV.rows; row++)
+	{
+		for (int col = 0; col < foreheadYUV.cols; col++)
+		{
+			foreheadYUV.at<cv::Vec3b>(row, col)[0] = 0;
+		}
+	}
+	cv::cvtColor(foreheadYUV, foreheadYUV, cv::COLOR_YUV2BGR);
+	*/
+
+	/* // DEBUG
+	Window::imgShow("forehead", foreheadRect);
+	Window::imgShow("mask forehead", resultforehead);
+	cv::waitKey(1);
+	*/
+
+	cv::Mat resultImg = cv::Mat::zeros(image.rows, image.cols, CV_32FC1);
+	resultforehead.copyTo(cv::Mat(resultImg, foreheadROI));
+
+	//for (int i = 0; i < 16; i++) // DEBUG
+	//	cv::line(resultImg, faceContourPoints[i], faceContourPoints[i + 1], cv::Scalar(1.0), 4, cv::LINE_AA);
 
 	// ellipse (circle) - face
 	cv::fillConvexPoly(resultImg, faceContourPoints, 17, cv::Scalar(1.0), cv::LINE_AA);
 	cv::Point2i center(faceContourPoints[0] + (faceContourPoints[16] - faceContourPoints[0]) / 2);
-	cv::Size axes((faceContourPoints[16].x - faceContourPoints[0].x) / 2, (faceContourPoints[16].x - faceContourPoints[0].x) / 2);
+	cv::Size axes((faceContourPoints[16].x - faceContourPoints[0].x) / 2, (faceContourPoints[16].x - faceContourPoints[0].x) / 2.5);
 	cv::ellipse(resultImg, center, axes, 0.0, 0.0, 360.0, cv::Scalar(1.0), cv::FILLED, cv::LINE_AA); // TODO: SOLVE ANGLE!!
 
+	// DEBUG
+	/*
+	//cv::ellipse(resultImg, center, axes, 0.0, 0.0, 360.0, cv::Scalar(1.0), cv::LINE_4, cv::LINE_AA); // TODO: SOLVE ANGLE!!
+	//std::string path = "C:\\Users\\root\\Desktop\\FaceBlit\\VS\\FFHQ_sub\\output_watercolorgirl";
+
+	//cv::Mat lm_vis = cv::Mat::zeros(image.rows, image.cols, CV_8UC3);
+	//CartesianCoordinateSystem::drawLandmarks(lm_vis, landmarks, cv::Scalar(255,0,0));
+	//cv::imwrite(path + "\\target_lm.png", lm_vis*255);
+	//cv::imwrite(path + "\\mask.png", resultImg*255);
+
+	Window::imgShow("FINAL", resultImg);
+	cv::waitKey(1);
+	*/
 
 	return resultImg;
+
 	//*/
 	
 	/*
