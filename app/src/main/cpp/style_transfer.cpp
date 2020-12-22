@@ -311,9 +311,6 @@ cv::Mat getAppGuide(const cv::Mat& image, bool stretchHist)
 
 float skinError(const cv::Vec3b& samplePixelCol, const cv::Vec3b& currPixelCol, const cv::Point2i& samplePixelPos, const cv::Point2i& currPixelPos, bool use_YUV, float max_dist) 
 {
-	float sigma = 0.5;
-	float sigmaSquared = pow(sigma, 2);
-
 	cv::Vec3b colDiff = samplePixelCol - currPixelCol;
 	float colDiffSumSquared = pow(colDiff[1], 2) + pow(colDiff[2], 2);
 	if (!use_YUV) 
@@ -321,7 +318,9 @@ float skinError(const cv::Vec3b& samplePixelCol, const cv::Vec3b& currPixelCol, 
 		colDiffSumSquared += pow(colDiff[0], 2);
 	}
 
-	cv::Point2i distDiff = samplePixelPos - currPixelPos;
+	//float sigma = 0.5;
+	//float sigmaSquared = pow(sigma, 2);
+	//cv::Point2i distDiff = samplePixelPos - currPixelPos;
 	//float posDiffSumSquared = pow(distDiff.x, 2) + pow(distDiff.y, 2);
 	//float posDiffSumAbs = abs(distDiff.x) + abs(distDiff.x);
 	//posDiffSumAbs /= (max_dist*1.5);
@@ -398,8 +397,8 @@ cv::Mat getSkinMask(const cv::Mat& image, const std::vector<cv::Point2i>& landma
 	{
 		for (int col = 0; col < (faceWidth / 4) * 2; col++)
 		{
-			cv::Vec3b currentPixelColor = foreheadRect.at<cv::Vec3b>(row, col);
-			if (skinError(sample_1_color, currentPixelColor, samplePoint_1, cv::Point2i(col, row), USE_YUV, faceWidth) < SKIN_ERROR_THRESHOLD)
+			if (skinError(sample_1_color, foreheadRect.at<cv::Vec3b>(row, col), 
+				          samplePoint_1, cv::Point2i(col, row), USE_YUV, faceWidth) < SKIN_ERROR_THRESHOLD)
 			{
 				resultforehead.at<float>(row, col) = 1;
 			}
@@ -410,8 +409,8 @@ cv::Mat getSkinMask(const cv::Mat& image, const std::vector<cv::Point2i>& landma
 	{
 		for (int col = (faceWidth / 4); col < (faceWidth / 4) * 3; col++)
 		{
-			cv::Vec3b currentPixelColor = foreheadRect.at<cv::Vec3b>(row, col);
-			if (skinError(sample_2_color, currentPixelColor, samplePoint_2, cv::Point2i(col, row), USE_YUV, faceWidth) < SKIN_ERROR_THRESHOLD)
+			if (skinError(sample_2_color, foreheadRect.at<cv::Vec3b>(row, col), 
+				          samplePoint_2, cv::Point2i(col, row), USE_YUV, faceWidth) < SKIN_ERROR_THRESHOLD)
 			{
 				resultforehead.at<float>(row, col) = 1;
 			}
@@ -422,8 +421,8 @@ cv::Mat getSkinMask(const cv::Mat& image, const std::vector<cv::Point2i>& landma
 	{
 		for (int col = (faceWidth / 4) * 2; col < foreheadRect.cols; col++)
 		{
-			cv::Vec3b currentPixelColor = foreheadRect.at<cv::Vec3b>(row, col);
-			if (skinError(sample_3_color, currentPixelColor, samplePoint_3, cv::Point2i(col, row), USE_YUV, faceWidth) < SKIN_ERROR_THRESHOLD)
+			if (skinError(sample_3_color, foreheadRect.at<cv::Vec3b>(row, col), 
+				          samplePoint_3, cv::Point2i(col, row), USE_YUV, faceWidth) < SKIN_ERROR_THRESHOLD)
 			{
 				resultforehead.at<float>(row, col) = 1;
 			}
