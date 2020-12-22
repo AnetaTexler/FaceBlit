@@ -247,7 +247,7 @@ cv::Mat getGradient(int width, int height, bool drawGrid)
 }
 
 
-cv::Mat MLSDeformation(const cv::Mat& gradientImg, const std::vector<cv::Point2i> styleLandmarks, const std::vector<cv::Point2i> targetLandmarks)
+cv::Mat MLSDeformation(const cv::Mat& gradientImg, const std::vector<cv::Point2i>& styleLandmarks, const std::vector<cv::Point2i>& targetLandmarks)
 {
 	ImgWarp_MLS_Similarity imgTrans = ImgWarp_MLS_Similarity();
 	//ImgWarp_MLS *imgTrans = new ImgWarp_MLS_Rigid();

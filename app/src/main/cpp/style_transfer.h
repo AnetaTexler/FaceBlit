@@ -11,7 +11,7 @@ unsigned char* stylize(const char* modelPath, const char* styleLandmarkStr, unsi
 std::vector<cv::Point2i> getLandmarkPointsFromString(const char* landmarks);
 void alignTargetToStyle(cv::Mat& targetImg, std::vector<cv::Point2i>& targetLandmarks, const std::vector<cv::Point2i>& styleLandmarks);
 cv::Mat getGradient(int width, int height, bool drawGrid);
-cv::Mat MLSDeformation(const cv::Mat& gradientImg, const std::vector<cv::Point2i> styleLandmarks, const std::vector<cv::Point2i> targetLandmarks);
+cv::Mat MLSDeformation(const cv::Mat& gradientImg, const std::vector<cv::Point2i>& styleLandmarks, const std::vector<cv::Point2i>& targetLandmarks);
 cv::Mat getAppGuide(const cv::Mat& image, bool stretchHist);
 cv::Mat getSkinMask(const cv::Mat& image, const std::vector<cv::Point2i>& landmarks);
 cv::Mat alphaBlendFG_BG(cv::Mat& foreground, cv::Mat& background, cv::Mat& alpha, float sigma);
