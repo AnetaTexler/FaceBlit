@@ -14,7 +14,7 @@ cv::Mat getGradient(int width, int height, bool drawGrid);
 cv::Mat MLSDeformation(const cv::Mat& gradientImg, const std::vector<cv::Point2i> styleLandmarks, const std::vector<cv::Point2i> targetLandmarks);
 cv::Mat getAppGuide(const cv::Mat& image, bool stretchHist);
 cv::Mat getSkinMask(const cv::Mat& image, const std::vector<cv::Point2i>& landmarks);
-cv::Mat alphaBlendFG_BG(cv::Mat foreground, cv::Mat background, cv::Mat alpha, float sigma);
+cv::Mat alphaBlendFG_BG(cv::Mat& foreground, cv::Mat& background, cv::Mat& alpha, float sigma);
 cv::Mat grayHistMatching(cv::Mat I, cv::Mat R);
 cv::Mat cumSum(cv::Mat & src);
 cv::Mat& scanImageAndReduceC(cv::Mat& image, const unsigned char* const table);

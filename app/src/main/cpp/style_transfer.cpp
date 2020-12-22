@@ -575,7 +575,7 @@ cv::Mat getSkinMask(const cv::Mat& image, const std::vector<cv::Point2i>& landma
 }
 
 
-cv::Mat alphaBlendFG_BG(cv::Mat foreground, cv::Mat background, cv::Mat alpha, float sigma)
+cv::Mat alphaBlendFG_BG(cv::Mat& foreground, cv::Mat& background, cv::Mat& alpha, float sigma)
 {
 	// Convert Mat to float data type
 	foreground.convertTo(foreground, CV_32FC3, 1.0 / 255.0);
