@@ -6,12 +6,6 @@
 #include "common_utils.h"
 #include "time_helper.h"
 
-extern "C" JNIEXPORT jstring JNICALL
-Java_texler_faceblit_MainActivity_stringFromJNI(JNIEnv *env, jobject /* this */) {
-    std::string hello = "Hello from C++";
-
-    return env->NewStringUTF(hello.c_str());
-}
 
 extern "C" JNIEXPORT jbyteArray JNICALL
 Java_texler_faceblit_JavaNativeInterface_getStylizedData(JNIEnv *env, jobject /*instance*/,

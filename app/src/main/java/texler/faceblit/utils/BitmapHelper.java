@@ -15,7 +15,7 @@ import java.nio.ByteBuffer;
 
 public class BitmapHelper {
 
-    public static Bitmap imageToBitmap(@NotNull Image image) {
+    public static byte[] imageToBytes(@NotNull Image image) {
         ByteBuffer yBuffer = image.getPlanes()[0].getBuffer();
         ByteBuffer uBuffer = image.getPlanes()[1].getBuffer();
         ByteBuffer vBuffer = image.getPlanes()[2].getBuffer();
@@ -34,7 +34,12 @@ public class BitmapHelper {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         yuvImage.compressToJpeg(new Rect(0, 0, yuvImage.getWidth(), yuvImage.getHeight()), 75, out);
 
-        byte[] imageBytes = out.toByteArray();
+        return out.toByteArray();
+    }
+
+    public static Bitmap imageToBitmap(@NotNull Image image) {
+
+        byte[] imageBytes = imageToBytes(image);
         return BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
         /*
         final ByteBuffer byteBuffer = image.getPlanes()[0].getBuffer(); // Image.Plane[] - color channels of a pixel

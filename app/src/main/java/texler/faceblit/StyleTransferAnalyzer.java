@@ -13,7 +13,6 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageProxy;
 
@@ -22,6 +21,7 @@ import java.io.File;
 import java.nio.ByteBuffer;
 import java.text.DecimalFormat;
 import java.util.ArrayDeque;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import texler.faceblit.fragments.StyleSelectorFragment;
@@ -43,15 +43,15 @@ public class StyleTransferAnalyzer implements ImageAnalysis.Analyzer {
     private TextView mTextView;
     private StringBuilder mStatistics;
 
-    private Handler mHandler;
+    private final Handler mHandler;
     //private AtomicBoolean isAnalyzing = new AtomicBoolean(false);
 
-    private int mFrameRateWindow = 8;
-    private ArrayDeque<Long> mFrameTimestamps;
+    private final int mFrameRateWindow = 8;
+    private final ArrayDeque<Long> mFrameTimestamps;
     //private long mLastAnalyzedTimestamp = 0L;
     //private double mFPS = -1.0;
 
-    private DecimalFormat mDecimalFormat;
+    private final DecimalFormat mDecimalFormat;
 
 
     public StyleTransferAnalyzer(int lensFacing, ImageView imageView, TextView textView) {
@@ -66,31 +66,27 @@ public class StyleTransferAnalyzer implements ImageAnalysis.Analyzer {
         this.mDecimalFormat = new DecimalFormat("#.##");
     }
 
+    @SuppressLint("UnsafeExperimentalUsageError") // ImageProxy.getImage() is experimental
     @Override
     public void analyze(@NonNull ImageProxy imageProxy) { // CameraX produces images in YUV_420_888 format
         if (imageProxy == null) return;
         //if (isAnalyzing.get()) return;
         //isAnalyzing.set(true);
-        //if (StyleSelectorFragment.getInstance().getStyleLandmarks() == null) // style is not set yet
-        //    return;
+        if (StyleSelectorFragment.getInstance().getStyleLandmarks() == null) { // style is not set yet
+            imageProxy.close();
+            return;
+        }
 
         // Keep track of frames analyzed and compute FPS
         long currentTime = System.currentTimeMillis();
         mFrameTimestamps.push(currentTime);
+        mStatistics.setLength(0); // clear the StringBuilder
         mStatistics.append("FPS: ").append(mDecimalFormat.format(getFPS(currentTime)));
 
-        ByteBuffer byteBuffer = imageProxy.getPlanes()[0].getBuffer();
-        //byteBuffer.rewind();
-        byte[] targetBytes = new byte[byteBuffer.remaining()]; // target image
-        byteBuffer.get(targetBytes);
-        Bitmap b = BitmapFactory.decodeByteArray(targetBytes, 0, targetBytes.length);
 
-        int width = imageProxy.getWidth();
-        int height = imageProxy.getHeight();
+        //Bitmap bitmap = BitmapHelper.imageToBitmap(imageProxy.getImage());
 
-
-        //@SuppressLint("UnsafeExperimentalUsageError") Image image = imageProxy.getImage();
-        //Bitmap bitmap = BitmapHelper.imageToBitmap(image);
+        byte[] targetBytes = BitmapHelper.imageToBytes(Objects.requireNonNull(imageProxy.getImage()));
 
         //if (mLensFacing == CameraSelector.LENS_FACING_FRONT) {
         //    bitmap = BitmapHelper.landscapeToPortraitRotationRight(bitmap);
@@ -100,35 +96,32 @@ public class StyleTransferAnalyzer implements ImageAnalysis.Analyzer {
         //    bitmap = BitmapHelper.landscapeToPortraitRotationLeft(bitmap);
         //}
 
-        /*mStylizedBytes = JavaNativeInterface.getStylizedData(
+        mStylizedBytes = JavaNativeInterface.getStylizedData(
                 mModelPath,
                 StyleSelectorFragment.getInstance().getStyleLandmarks(),
                 StyleSelectorFragment.getInstance().getLookupCubeBytes(),
                 StyleSelectorFragment.getInstance().getStyleBitmapBytes(),
                 targetBytes,
-                width,
-                height,
+                imageProxy.getWidth(),
+                imageProxy.getHeight(),
                 mLensFacing,
-                mStylizeFaceOnly);*/
+                mStylizeFaceOnly);
 
-        //mStylizedBytes = targetBytes;
+        StyleSelectorFragment.getInstance().setStyleChanged(false);
 
-        //StyleSelectorFragment.getInstance().setStyleChanged(false);
-        // Convert bytes to bitmap
-        //if (mStylizedBytes != null) // Override mStylizedBitmap by stylized result only when stylization was successful
-            //mStylizedBitmap = BitmapFactory.decodeByteArray(mStylizedBytes, 0, mStylizedBytes.length);
-            //mStylizedBitmap = BitmapHelper.bytesToBitmap(mStylizedBytes, width, height, Bitmap.Config.ARGB_8888);
+        // Convert bytes to bitmap (override mStylizedBitmap by stylized result only when stylization was successful)
+        if (mStylizedBytes != null)
+            mStylizedBitmap = BitmapFactory.decodeByteArray(mStylizedBytes, 0, mStylizedBytes.length);
 
         mHandler.post(new Runnable() { // run on the next run loop on the main thread.
             @Override
             public void run() {
-                mImageView.setImageBitmap(b);
+                mImageView.setImageBitmap(mStylizedBitmap);
                 mTextView.setText(mStatistics);
             }
         });
 
         imageProxy.close(); // IMPORTANT!
-        mStatistics.setLength(0); // clear the StringBuilder
     }
 
 

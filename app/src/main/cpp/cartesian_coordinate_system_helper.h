@@ -69,7 +69,7 @@ public:
 	}
 
 
-	static std::vector<cv::Point2i> recomputePointsDueToScale(const std::vector<cv::Point2i>& points, const float& scaleRatio, const cv::Point2i& origin, const cv::Size& size)
+	static std::vector<cv::Point2i> recomputePointsDueToScale(const std::vector<cv::Point2i>& points, const float& scaleRatio, const cv::Point2i& origin, const cv::Size& dstSize)
 	{
 		std::vector<cv::Point2i> resultPoints;
 		for (cv::Point2i point : points)
@@ -78,7 +78,7 @@ public:
 			int y = round((point.y - origin.y) * scaleRatio + origin.y);
 			resultPoints.push_back(cv::Point2i(x, y));
 
-			clampPointInsideImage(resultPoints[resultPoints.size() - 1], size); // secure the coordinates to be inside the image
+			clampPointInsideImage(resultPoints[resultPoints.size() - 1], dstSize); // secure the coordinates to be inside the image
 		}
 		return resultPoints;
 	}

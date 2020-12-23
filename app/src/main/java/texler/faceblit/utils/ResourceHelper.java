@@ -19,7 +19,7 @@ import texler.faceblit.R;
 
 public class ResourceHelper {
 
-    private static final String TAG = "DataHelper";
+    private static final String TAG = "ResourceHelper";
 
     @NotNull
     public static ArrayList<String> getRecyclerViewItemsNames() {

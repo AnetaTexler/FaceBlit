@@ -26,7 +26,7 @@
 
 
 
-int GRID_SIZE = 40;
+int GRID_SIZE = 10;
 int MEAN = 128;
 
 

@@ -22,7 +22,7 @@ import texler.faceblit.R;
 public class PermissionsFragment extends Fragment {
 
     private final int PERMISSIONS_REQUEST_CODE = 10;
-    private static final String[] PERMISSIONS_REQUIRED = new String[]{Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE};
+    private static final String[] PERMISSIONS_REQUIRED = new String[]{Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE};
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -41,7 +41,7 @@ public class PermissionsFragment extends Fragment {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
         if (requestCode == PERMISSIONS_REQUEST_CODE) {
-            if (PackageManager.PERMISSION_GRANTED == grantResults[0] && PackageManager.PERMISSION_GRANTED == grantResults[1]) {
+            if (PackageManager.PERMISSION_GRANTED == grantResults[0] && PackageManager.PERMISSION_GRANTED == grantResults[1] && PackageManager.PERMISSION_GRANTED == grantResults[2]) {
                 Toast.makeText(getContext(), "Permission request granted", Toast.LENGTH_LONG).show();
                 Navigation.findNavController(requireActivity(), R.id.fragment_container).navigate(PermissionsFragmentDirections.actionPermissionsToCamera());
             } else {

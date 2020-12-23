@@ -29,7 +29,7 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewAdapte
         this.mContext = context;
         this.mImageNames = imageNames;
         //this.mCallback = (IRecyclerViewCallback)context;
-        this.mSelectedPosition = 0;
+        this.mSelectedPosition = -1;
     }
 
     @NonNull
