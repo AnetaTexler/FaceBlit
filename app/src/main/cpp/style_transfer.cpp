@@ -28,7 +28,7 @@
 
 int GRID_SIZE = 10;
 int MEAN = 128;
-
+int RESIZE_RATIO = 4;
 
 // Function called only from JNI
 unsigned char* stylize(const char* modelPath, const char* styleLandmarkStr, unsigned char* lookupCubeData, unsigned char* styleData, unsigned char* targetData, int width, int height, int lensFacing, bool stylizeFaceOnly)
@@ -38,18 +38,34 @@ unsigned char* stylize(const char* modelPath, const char* styleLandmarkStr, unsi
 	cv::Mat targetImgPortrait = cv::Mat(width, height, CV_8UC4); // portrait
 	cv::Mat targetImg = cv::Mat(width, height, CV_8UC4); // correct input
 	targetImgLandscape.data = targetData;
-	cvtColor(targetImgLandscape, targetImgLandscape, cv::COLOR_RGBA2BGR);
-
+	cv::cvtColor(targetImgLandscape, targetImgLandscape, cv::COLOR_RGBA2BGR);
+	//cv::cvtColor(targetImgLandscape, targetImgLandscape, cv::COLOR_YUV2BGR_NV21);
+	
 	// rotation and flip - not in-place!
 	if (lensFacing == 0) // front camera
 	{
-		cv::rotate(targetImgLandscape, targetImgPortrait, cv::ROTATE_90_CLOCKWISE); // rotate right
+		cv::rotate(targetImgLandscape, targetImgPortrait, cv::ROTATE_90_COUNTERCLOCKWISE); // rotate right
 		cv::flip(targetImgPortrait, targetImg, 1); // not possible to flip in-place (leads to segfault)
 	}
 	else // back camera
-		cv::rotate(targetImgLandscape, targetImg, cv::ROTATE_90_COUNTERCLOCKWISE); // rotate left
+		cv::rotate(targetImgLandscape, targetImg, cv::ROTATE_90_CLOCKWISE); // rotate left
 
-	cv::resize(targetImg, targetImg, cv::Size(768, 1024)); // Resize to fit the styleImg size
+	width = 768;
+	height = 1024;
+	cv::resize(targetImg, targetImg, cv::Size(width, height));
+	cv::Mat smallTargetImg = cv::Mat(width / RESIZE_RATIO, height / RESIZE_RATIO, targetImg.type());
+	cv::resize(targetImg, smallTargetImg, cv::Size(width / RESIZE_RATIO, height / RESIZE_RATIO)); // Resize to fit the styleImg size
+
+	// ----------- TEST -------------
+	/*for (int r = 0; r < targetImg.rows; r++) {
+		for (int c = 0; c < targetImg.cols; c++) {
+			cv::Vec3b px = targetImg.at<cv::Vec3b>(r, c);
+			targetImg.at<cv::Vec3b>(r, c) = cv::Vec3b(px[0], px[1], 0);
+		}
+	}
+	cvtColor(targetImg, targetImg, cv::COLOR_BGR2RGBA);
+	return targetImg.data;*/
+	// ----------- TEST -------------
 
 	// LANDMARK DETECTION
     if (StyleCache::getInstance().dlibDetector == nullptr)
@@ -59,14 +75,14 @@ unsigned char* stylize(const char* modelPath, const char* styleLandmarkStr, unsi
 	std::vector<cv::Point2i> targetLandmarks;
 
     TimeMeasure t_landmarks;
-    bool success = StyleCache::getInstance().dlibDetector->detectFacemarks(targetImg, detectionResult); // Detect landmarks in target image
+    bool success = StyleCache::getInstance().dlibDetector->detectFacemarks(smallTargetImg, detectionResult); // Detect landmarks in target image
     Log_i("FACEBLIT", "Landmarks time: " + std::to_string(t_landmarks.elapsed_milliseconds()) + " ms");
 
-	if (success)
-		targetLandmarks = detectionResult.second; 
-	else
-		return NULL;
-
+	if (!success) return NULL;
+		
+	targetLandmarks = detectionResult.second; 
+	for (int i = 0; i < targetLandmarks.size(); i++)
+		targetLandmarks[i] *= RESIZE_RATIO;
 
 	// GUIDES AND STYLIZATION
     if (styleLandmarkStr != NULL)
@@ -78,7 +94,7 @@ unsigned char* stylize(const char* modelPath, const char* styleLandmarkStr, unsi
     	styleImg.data = styleData;
         cvtColor(styleImg, styleImg, cv::COLOR_RGBA2BGR);
         styleImg.copyTo(StyleCache::getInstance().styleImg);
-        cv::imwrite("/storage/emulated/0/Download/models/styleImg.png", styleImg);
+        //cv::imwrite("/storage/emulated/0/Download/models/styleImg.png", styleImg);
 	}
 
 	TimeMeasure t_stylePosGuide;
@@ -150,7 +166,7 @@ unsigned char* stylize(const char* modelPath, const char* styleLandmarkStr, unsi
     }
 
     // Convert from BGR (OpenCV default) to RGBA (Java Bitmap default)
-	cvtColor(stylizedImg, stylizedImg, cv::COLOR_BGR2RGBA);
+	cv::cvtColor(stylizedImg, stylizedImg, cv::COLOR_BGR2RGBA);
 	return stylizedImg.data;
 }
 

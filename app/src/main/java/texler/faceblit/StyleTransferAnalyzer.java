@@ -13,6 +13,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageProxy;
 
@@ -36,9 +37,10 @@ public class StyleTransferAnalyzer implements ImageAnalysis.Analyzer {
     private final String mModelPath; // path to face landmarks pre-trained model
     private byte[] mStylizedBytes; // stylized image
     private Bitmap mStylizedBitmap; // stylized image
+    private BitmapFactory.Options mBitmapOptions;
 
     private int mLensFacing;
-    private boolean mStylizeFaceOnly = false;
+    private boolean mStylizeFaceOnly = true;
     private ImageView mImageView;
     private TextView mTextView;
     private StringBuilder mStatistics;
@@ -64,11 +66,13 @@ public class StyleTransferAnalyzer implements ImageAnalysis.Analyzer {
         this.mHandler = new Handler(Looper.getMainLooper());
         this.mFrameTimestamps = new ArrayDeque<>(5);
         this.mDecimalFormat = new DecimalFormat("#.##");
+        this.mBitmapOptions = new BitmapFactory.Options();
+        this.mBitmapOptions.outConfig = Bitmap.Config.ARGB_8888;
     }
 
     @SuppressLint("UnsafeExperimentalUsageError") // ImageProxy.getImage() is experimental
     @Override
-    public void analyze(@NonNull ImageProxy imageProxy) { // CameraX produces images in YUV_420_888 format
+    public void analyze(@NonNull ImageProxy imageProxy) { // CameraX produces images in YUV_420_888 format. The default analyzer resolution is 640x480
         if (imageProxy == null) return;
         //if (isAnalyzing.get()) return;
         //isAnalyzing.set(true);
@@ -83,18 +87,16 @@ public class StyleTransferAnalyzer implements ImageAnalysis.Analyzer {
         mStatistics.setLength(0); // clear the StringBuilder
         mStatistics.append("FPS: ").append(mDecimalFormat.format(getFPS(currentTime)));
 
+        Bitmap targetBitmap = BitmapHelper.imageToBitmap(imageProxy.getImage());
+        byte[] targetBytes = BitmapHelper.bitmapToBytes(targetBitmap); // pixels
 
-        //Bitmap bitmap = BitmapHelper.imageToBitmap(imageProxy.getImage());
-
-        byte[] targetBytes = BitmapHelper.imageToBytes(Objects.requireNonNull(imageProxy.getImage()));
-
-        //if (mLensFacing == CameraSelector.LENS_FACING_FRONT) {
-        //    bitmap = BitmapHelper.landscapeToPortraitRotationRight(bitmap);
-        //    bitmap = BitmapHelper.bitmapHorizontalFlip(bitmap);
-        //}
-        //if (mLensFacing == CameraSelector.LENS_FACING_BACK) {
-        //    bitmap = BitmapHelper.landscapeToPortraitRotationLeft(bitmap);
-        //}
+        /*if (mLensFacing == CameraSelector.LENS_FACING_FRONT) { // 0
+            targetBitmap = BitmapHelper.landscapeToPortraitRotationRight(targetBitmap);
+            targetBitmap = BitmapHelper.bitmapHorizontalFlip(targetBitmap);
+        }
+        if (mLensFacing == CameraSelector.LENS_FACING_BACK) { // 1
+            targetBitmap = BitmapHelper.landscapeToPortraitRotationLeft(targetBitmap);
+        }*/
 
         mStylizedBytes = JavaNativeInterface.getStylizedData(
                 mModelPath,
@@ -110,8 +112,12 @@ public class StyleTransferAnalyzer implements ImageAnalysis.Analyzer {
         StyleSelectorFragment.getInstance().setStyleChanged(false);
 
         // Convert bytes to bitmap (override mStylizedBitmap by stylized result only when stylization was successful)
+        // An ARGB_8888 Bitmap (on pre Honeycomb versions) is natively stored in the RGBA format.
         if (mStylizedBytes != null)
-            mStylizedBitmap = BitmapFactory.decodeByteArray(mStylizedBytes, 0, mStylizedBytes.length);
+        {
+            mStylizedBitmap = BitmapHelper.bytesToBitmap(mStylizedBytes, 768/*targetBitmap.getWidth()*/, 1024/*targetBitmap.getHeight()*/, targetBitmap.getConfig());
+            //mStylizedBitmap = BitmapFactory.decodeByteArray(mStylizedBytes, 0, mStylizedBytes.length);
+        }
 
         mHandler.post(new Runnable() { // run on the next run loop on the main thread.
             @Override

@@ -183,8 +183,8 @@ int main()
 	const std::string root = "C:\\Users\\Aneta\\Desktop\\videos";
 	//const std::string root = std::filesystem::current_path().string();
 
-	std::string styleName = "expressive.png";			// name of a style image from dir root/styles with extension
-	std::string videoName = "target9.mp4";					// name of a target video with extension
+	std::string styleName = "ken.png";			// name of a style image from dir root/styles with extension
+	std::string videoName = "target5.mp4";					// name of a target video with extension
 	const int NNF_patchsize = 3;							// voting patch size (0 for no voting)
 	const bool transparentBG = false;						// choice of background (true = transparent bg, false = target image bg)
 	//const bool frontCamera = true;							// camera facing
@@ -365,16 +365,16 @@ int main()
 		// Write frames (stylized, Gpos, Gapp)
 		//makeDir(outputDirPath + "\\input_frames");
 		makeDir(outputDirPath + "\\stylized_frames");
-		makeDir(outputDirPath + "\\gpos_frames");
-		makeDir(outputDirPath + "\\gapp_frames");
+		//makeDir(outputDirPath + "\\gpos_frames");
+		//makeDir(outputDirPath + "\\gapp_frames");
 		//makeDir(outputDirPath + "\\facemask_frames");
 		//makeDir(outputDirPath + "\\lm_frames");
 		//makeDir(outputDirPath + "\\base_frames");
 		//makeDir(outputDirPath + "\\detail_frames"); 
 		//cv::imwrite(outputDirPath + "\\input_frames\\" + padLeft(std::to_string(j), 4, '0') + ".png", frame);
 		cv::imwrite(outputDirPath + "\\stylized_frames\\" + padLeft(std::to_string(j), 4, '0') + ".png", alphaBlendResult);
-		cv::imwrite(outputDirPath + "\\gpos_frames\\" + padLeft(std::to_string(j), 4, '0') + ".png", targetPosGuide);
-		cv::imwrite(outputDirPath + "\\gapp_frames\\" + padLeft(std::to_string(j), 4, '0') + ".png", targetAppGuide);
+		//cv::imwrite(outputDirPath + "\\gpos_frames\\" + padLeft(std::to_string(j), 4, '0') + ".png", targetPosGuide);
+		//cv::imwrite(outputDirPath + "\\gapp_frames\\" + padLeft(std::to_string(j), 4, '0') + ".png", targetAppGuide);
 		//faceMask.convertTo(faceMask, CV_8UC3, 255.0);
 		//cv::imwrite(outputDirPath + "\\facemask_frames\\" + padLeft(std::to_string(j), 4, '0') + ".png", faceMask);
 		//CartesianCoordinateSystem::drawLandmarks(frame, targetLandmarks);

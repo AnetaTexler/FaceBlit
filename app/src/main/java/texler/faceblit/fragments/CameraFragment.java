@@ -500,13 +500,4 @@ public class CameraFragment extends Fragment {
         return new File(baseFolder, mDateFormat.format(System.currentTimeMillis()) + extension);
     }
 
-    /**
-     * Our custom image analysis class.
-     *
-     * <p>All we need to do is override the function `analyze` with our desired operations. Here,
-     * we compute the average luminosity of the image by looking at the Y plane of the YUV frame.
-     */
-    //TODO
-
-
 }
