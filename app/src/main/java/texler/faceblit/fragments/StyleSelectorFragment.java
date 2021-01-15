@@ -60,7 +60,7 @@ public class StyleSelectorFragment extends Fragment { //implements IRecyclerView
         setStyleData(styleName);
     }
 
-    public synchronized void setStyleData(String styleName)    {
+    synchronized public void setStyleData(String styleName)    {
         int[] resources = ResourceHelper.getRelatedResources(styleName); // [0] - id of a style img, [1] - id of its landmarks, [2] - id of its lookup table
 
         BitmapFactory.Options options = new BitmapFactory.Options();

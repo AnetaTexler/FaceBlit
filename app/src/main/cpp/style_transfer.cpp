@@ -34,27 +34,12 @@ int RESIZE_RATIO = 4;
 unsigned char* stylize(const char* modelPath, const char* styleLandmarkStr, unsigned char* lookupCubeData, unsigned char* styleData, unsigned char* targetData, int width, int height, int lensFacing, bool stylizeFaceOnly)
 {
 	// INPUT IMAGE PREPARATION
-	cv::Mat targetImgLandscape = cv::Mat(height, width, CV_8UC4); // landscape
-	cv::Mat targetImgPortrait = cv::Mat(width, height, CV_8UC4); // portrait
-	cv::Mat targetImg = cv::Mat(width, height, CV_8UC4); // correct input
-	targetImgLandscape.data = targetData;
-	cv::cvtColor(targetImgLandscape, targetImgLandscape, cv::COLOR_RGBA2BGR);
-	//cv::cvtColor(targetImgLandscape, targetImgLandscape, cv::COLOR_YUV2BGR_NV21);
-	
-	// rotation and flip - not in-place!
-	if (lensFacing == 0) // front camera
-	{
-		cv::rotate(targetImgLandscape, targetImgPortrait, cv::ROTATE_90_COUNTERCLOCKWISE); // rotate right
-		cv::flip(targetImgPortrait, targetImg, 1); // not possible to flip in-place (leads to segfault)
-	}
-	else // back camera
-		cv::rotate(targetImgLandscape, targetImg, cv::ROTATE_90_CLOCKWISE); // rotate left
+	cv::Mat targetImg = cv::Mat(height, width, CV_8UC4);
+	targetImg.data = targetData;
+	cv::cvtColor(targetImg, targetImg, cv::COLOR_RGBA2BGR);
 
-	width = 768;
-	height = 1024;
-	cv::resize(targetImg, targetImg, cv::Size(width, height));
-	cv::Mat smallTargetImg = cv::Mat(width / RESIZE_RATIO, height / RESIZE_RATIO, targetImg.type());
-	cv::resize(targetImg, smallTargetImg, cv::Size(width / RESIZE_RATIO, height / RESIZE_RATIO)); // Resize to fit the styleImg size
+	cv::Mat smallTargetImg; // only for speeding up the landmark detection
+	cv::resize(targetImg, smallTargetImg, cv::Size(width / RESIZE_RATIO, height / RESIZE_RATIO)); 
 
 	// ----------- TEST -------------
 	/*for (int r = 0; r < targetImg.rows; r++) {
@@ -75,14 +60,14 @@ unsigned char* stylize(const char* modelPath, const char* styleLandmarkStr, unsi
 	std::vector<cv::Point2i> targetLandmarks;
 
     TimeMeasure t_landmarks;
-    bool success = StyleCache::getInstance().dlibDetector->detectFacemarks(smallTargetImg, detectionResult); // Detect landmarks in target image
+    bool success = StyleCache::getInstance().dlibDetector->detectFacemarks(smallTargetImg, detectionResult); // Detect landmarks in downscaled target image (due to speed up)
     Log_i("FACEBLIT", "Landmarks time: " + std::to_string(t_landmarks.elapsed_milliseconds()) + " ms");
 
 	if (!success) return NULL;
 		
-	targetLandmarks = detectionResult.second; 
+	targetLandmarks = detectionResult.second;
 	for (int i = 0; i < targetLandmarks.size(); i++)
-		targetLandmarks[i] *= RESIZE_RATIO;
+		targetLandmarks[i] *= RESIZE_RATIO; // recompute landmarks to fit the original size
 
 	// GUIDES AND STYLIZATION
     if (styleLandmarkStr != NULL)

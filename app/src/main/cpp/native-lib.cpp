@@ -64,8 +64,8 @@ Java_texler_faceblit_JavaNativeInterface_getStylizedData(JNIEnv *env, jobject /*
 
     jbyteArray javaOutImgBytes = nullptr;
     if (outImgChars != nullptr) {
-        javaOutImgBytes = env->NewByteArray(/*targetLength*/768*1024*4);
-        env->SetByteArrayRegion(javaOutImgBytes, 0, /*targetLength*/768*1024*4, reinterpret_cast<jbyte*>(outImgChars));
+        javaOutImgBytes = env->NewByteArray(targetLength);
+        env->SetByteArrayRegion(javaOutImgBytes, 0, targetLength, reinterpret_cast<jbyte*>(outImgChars));
     }
 
     // --- Release memory ------------------------------------------------------------------------

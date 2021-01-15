@@ -20,7 +20,9 @@ public class BitmapHelper {
     public static Bitmap imageToBitmap (@NotNull Image image) {
 
         byte[] imageBytes = imageToBytes(image);
-        return BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inScaled = false; // suppress automatic scaling
+        return BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length, options);
     }
 
     // YUV_420_888 -> NV21

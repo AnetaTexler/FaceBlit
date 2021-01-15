@@ -292,7 +292,7 @@ public class CameraFragment extends Fragment {
             // A variable number of use-cases can be passed here - camera provides access to CameraControl & CameraInfo
             mCamera = cameraProvider.bindToLifecycle(this, cameraSelector, mPreview, mImageCapture, mImageAnalysis);
             // Attach the viewfinder's surface provider to preview use case
-            mPreview.setSurfaceProvider(mPreviewView.createSurfaceProvider());
+            mPreview.setSurfaceProvider(mPreviewView.getSurfaceProvider());
         }
         catch (Exception e) {
             Log.e(TAG, "Use case binding failed.", e);

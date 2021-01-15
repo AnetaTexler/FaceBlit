@@ -35,9 +35,8 @@ public class StyleTransferAnalyzer implements ImageAnalysis.Analyzer {
     private static final Size STYLE_SIZE = new Size(768, 1024);
 
     private final String mModelPath; // path to face landmarks pre-trained model
-    private byte[] mStylizedBytes; // stylized image
+    private byte[] mStylizedBytes; // stylized image bytes
     private Bitmap mStylizedBitmap; // stylized image
-    private BitmapFactory.Options mBitmapOptions;
 
     private int mLensFacing;
     private boolean mStylizeFaceOnly = true;
@@ -50,8 +49,6 @@ public class StyleTransferAnalyzer implements ImageAnalysis.Analyzer {
 
     private final int mFrameRateWindow = 8;
     private final ArrayDeque<Long> mFrameTimestamps;
-    //private long mLastAnalyzedTimestamp = 0L;
-    //private double mFPS = -1.0;
 
     private final DecimalFormat mDecimalFormat;
 
@@ -66,8 +63,6 @@ public class StyleTransferAnalyzer implements ImageAnalysis.Analyzer {
         this.mHandler = new Handler(Looper.getMainLooper());
         this.mFrameTimestamps = new ArrayDeque<>(5);
         this.mDecimalFormat = new DecimalFormat("#.##");
-        this.mBitmapOptions = new BitmapFactory.Options();
-        this.mBitmapOptions.outConfig = Bitmap.Config.ARGB_8888;
     }
 
     @SuppressLint("UnsafeExperimentalUsageError") // ImageProxy.getImage() is experimental
@@ -87,35 +82,36 @@ public class StyleTransferAnalyzer implements ImageAnalysis.Analyzer {
         mStatistics.setLength(0); // clear the StringBuilder
         mStatistics.append("FPS: ").append(mDecimalFormat.format(getFPS(currentTime)));
 
-        Bitmap targetBitmap = BitmapHelper.imageToBitmap(imageProxy.getImage());
-        byte[] targetBytes = BitmapHelper.bitmapToBytes(targetBitmap); // pixels
+        Bitmap targetBitmap = BitmapHelper.imageToBitmap(imageProxy.getImage()); // An ARGB_8888 Bitmap (on pre Honeycomb versions) is natively stored in the RGBA format.
 
-        /*if (mLensFacing == CameraSelector.LENS_FACING_FRONT) { // 0
+        if (mLensFacing == CameraSelector.LENS_FACING_FRONT) { // 0
             targetBitmap = BitmapHelper.landscapeToPortraitRotationRight(targetBitmap);
             targetBitmap = BitmapHelper.bitmapHorizontalFlip(targetBitmap);
         }
         if (mLensFacing == CameraSelector.LENS_FACING_BACK) { // 1
             targetBitmap = BitmapHelper.landscapeToPortraitRotationLeft(targetBitmap);
-        }*/
+        }
+
+        targetBitmap = Bitmap.createScaledBitmap(targetBitmap, STYLE_SIZE.getWidth(), STYLE_SIZE.getHeight(), true); // match the style size
+        byte[] targetBytes = BitmapHelper.bitmapToBytes(targetBitmap); // pixels
 
         mStylizedBytes = JavaNativeInterface.getStylizedData(
                 mModelPath,
-                StyleSelectorFragment.getInstance().getStyleLandmarks(),
-                StyleSelectorFragment.getInstance().getLookupCubeBytes(),
-                StyleSelectorFragment.getInstance().getStyleBitmapBytes(),
+                StyleSelectorFragment.getInstance().isStyleChanged() ? StyleSelectorFragment.getInstance().getStyleLandmarks() : null,
+                StyleSelectorFragment.getInstance().isStyleChanged() ? StyleSelectorFragment.getInstance().getLookupCubeBytes() : null,
+                StyleSelectorFragment.getInstance().isStyleChanged() ? StyleSelectorFragment.getInstance().getStyleBitmapBytes() : null,
                 targetBytes,
-                imageProxy.getWidth(),
-                imageProxy.getHeight(),
+                targetBitmap.getWidth(),
+                targetBitmap.getHeight(),
                 mLensFacing,
                 mStylizeFaceOnly);
 
         StyleSelectorFragment.getInstance().setStyleChanged(false);
 
         // Convert bytes to bitmap (override mStylizedBitmap by stylized result only when stylization was successful)
-        // An ARGB_8888 Bitmap (on pre Honeycomb versions) is natively stored in the RGBA format.
         if (mStylizedBytes != null)
         {
-            mStylizedBitmap = BitmapHelper.bytesToBitmap(mStylizedBytes, 768/*targetBitmap.getWidth()*/, 1024/*targetBitmap.getHeight()*/, targetBitmap.getConfig());
+            mStylizedBitmap = BitmapHelper.bytesToBitmap(mStylizedBytes, targetBitmap.getWidth(), targetBitmap.getHeight(), targetBitmap.getConfig());
             //mStylizedBitmap = BitmapFactory.decodeByteArray(mStylizedBytes, 0, mStylizedBytes.length);
         }
 
