@@ -35,6 +35,6 @@ cv::Mat2i denoiseNNF(const cv::Mat2i& noisyNNF, const int patchsizeNNF);
 cv::Mat votingOnRGB(const cv::Mat& style, const cv::Mat2i& NNF, const int patchsizeNNF);
 cv::Mat votingOnNNF(const cv::Mat& style, const cv::Mat2i& NNF, const int patchsizeNNF);
 void DFSSeedGrow_voting(cv::Point2i targetSeedPoint, cv::Point2i styleSeedPoint, const cv::Mat& stylePosGuide, const cv::Mat& targetPosGuide, const cv::Mat& styleAppGuide, const cv::Mat& targetAppGuide, cv::Mat2i& NNF,/* const cv::Mat& styleImg,*/ cv::Mat1i& coveredPixels, int chunkNumber, const int threshold, const int lambdaPos, const int lambdaApp);
-cv::Mat styleBlit_voting(const cv::Mat& stylePosGuide, const cv::Mat& targetPosGuide, const cv::Mat& styleAppGuide, const cv::Mat& targetAppGuide, const cv::Mat& lookUpCube, const cv::Mat& styleImg, const cv::Rect2i stylizationRangeRect, const int NNF_patchsize, const int threshold = 50, const int lambdaPos = 10, const int lambdaApp = 2);
+cv::Mat styleBlit_voting(const cv::Mat& stylePosGuide, const cv::Mat& targetPosGuide, const cv::Mat& styleAppGuide, const cv::Mat& targetAppGuide, const cv::Mat& lookUpCube, const cv::Mat& styleImg, const cv::Rect2i stylizationRangeRect, const int NNF_patchsize = 3, const int threshold = 50, const int lambdaPos = 10, const int lambdaApp = 2);
 
 #endif //STYLECAM_STYLIZEIMAGE_H
