@@ -28,7 +28,9 @@
 
 int GRID_SIZE = 10;
 int MEAN = 128;
-int RESIZE_RATIO = 4;
+int RESIZE_RATIO_LM = 4;
+int RESIZE_RATIO_MLS = 2;
+
 
 // Function called only from JNI
 unsigned char* stylize(const char* modelPath, const char* styleLandmarkStr, unsigned char* lookupCubeData, unsigned char* styleData, unsigned char* targetData, int width, int height, int lensFacing, bool stylizeFaceOnly)
@@ -39,7 +41,7 @@ unsigned char* stylize(const char* modelPath, const char* styleLandmarkStr, unsi
 	cv::cvtColor(targetImg, targetImg, cv::COLOR_RGBA2BGR);
 
 	cv::Mat smallTargetImg; // only for speeding up the landmark detection
-	cv::resize(targetImg, smallTargetImg, cv::Size(width / RESIZE_RATIO, height / RESIZE_RATIO)); 
+	cv::resize(targetImg, smallTargetImg, cv::Size(width / RESIZE_RATIO_LM, height / RESIZE_RATIO_LM)); 
 
 	// ----------- TEST -------------
 	/*for (int r = 0; r < targetImg.rows; r++) {
@@ -67,7 +69,7 @@ unsigned char* stylize(const char* modelPath, const char* styleLandmarkStr, unsi
 		
 	targetLandmarks = detectionResult.second;
 	for (int i = 0; i < targetLandmarks.size(); i++)
-		targetLandmarks[i] *= RESIZE_RATIO; // recompute landmarks to fit the original size
+		targetLandmarks[i] = (targetLandmarks[i] * RESIZE_RATIO_LM) / RESIZE_RATIO_MLS; // Adjust target landmarks to fit the MLS size
 
 	// GUIDES AND STYLIZATION
     if (styleLandmarkStr != NULL)
@@ -87,9 +89,19 @@ unsigned char* stylize(const char* modelPath, const char* styleLandmarkStr, unsi
 		StyleCache::getInstance().stylePosGuide = getGradient(width, height, false); // style positional guide - G_pos
 	Log_i("FACEBLIT", std::string() + "StylePosGuide time: " + std::to_string(t_stylePosGuide.elapsed_milliseconds()) + " ms");
 
+	cv::Mat smallStylePosGuide;
+	cv::resize(StyleCache::getInstance().stylePosGuide, smallStylePosGuide, cv::Size(width / RESIZE_RATIO_MLS, height / RESIZE_RATIO_MLS)); // Perform MLS on downscaled gradient (due to speed up)
+	std::vector<cv::Point2i> smallStyleLandmarks = StyleCache::getInstance().styleLandmarks; // deep copy
+	for (int i = 0; i < smallStyleLandmarks.size(); i++)
+		smallStyleLandmarks[i] /= RESIZE_RATIO_MLS; // Adjust style landmarks to fit the MLS size
+
 	TimeMeasure t_targetPosGuide;
-	cv::Mat targetPosGuide = MLSDeformation(StyleCache::getInstance().stylePosGuide, StyleCache::getInstance().styleLandmarks, targetLandmarks); // target positional guide - G_pos
+	cv::Mat targetPosGuide = MLSDeformation(smallStylePosGuide, smallStyleLandmarks, targetLandmarks); // target positional guide - G_pos
 	Log_i("FACEBLIT", std::string() + "TargetPosGuide time: " + std::to_string(t_targetPosGuide.elapsed_milliseconds()) + " ms");
+
+	cv::resize(targetPosGuide, targetPosGuide, cv::Size(width, height)); // Upscale Gpos to original size
+	for (int i = 0; i < targetLandmarks.size(); i++) 
+		targetLandmarks[i] *= RESIZE_RATIO_MLS; // Adjust landmarks to fit the original size
 
 	TimeMeasure t_styleAppGuide;
 	if (styleData != NULL)
