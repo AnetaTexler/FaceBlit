@@ -25,15 +25,14 @@ public class PermissionsFragment extends Fragment {
     private static final String[] PERMISSIONS_REQUIRED = new String[]{Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE};
 
     @Override
-    public void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         if (allPermissionsGranted(requireContext())) {
             Navigation.findNavController(requireActivity(), R.id.fragment_container).navigate(PermissionsFragmentDirections.actionPermissionsToCamera());
         }
         else {
             requestPermissions(PERMISSIONS_REQUIRED, PERMISSIONS_REQUEST_CODE);
         }
+        super.onActivityCreated(savedInstanceState);
     }
 
     @Override

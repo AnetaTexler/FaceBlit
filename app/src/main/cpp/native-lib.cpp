@@ -18,7 +18,7 @@ Java_texler_faceblit_JavaNativeInterface_getStylizedData(JNIEnv *env, jobject /*
                                                          jint lensFacing,
                                                          jboolean stylizeFaceOnly) {
 
-    Log_e("HACK", "#######################");
+    Log_i("FACEBLIT", "#######################");
     TimeMeasure t_getByteArrays;
 
     int targetLength = env->GetArrayLength(targetImgBytes);
@@ -39,7 +39,7 @@ Java_texler_faceblit_JavaNativeInterface_getStylizedData(JNIEnv *env, jobject /*
         env->GetByteArrayRegion(lookupCubeBytes, 0, cubeLength, reinterpret_cast<jbyte*>(lookupCubeChars));
     }
 
-    Log_e("HACK", std::string() + "t_getByteArrays time: " + std::to_string(t_getByteArrays.elapsed_milliseconds()));
+    Log_i("FACEBLIT", std::string() + "t_getByteArrays time: " + std::to_string(t_getByteArrays.elapsed_milliseconds()));
 
     const char* nativeModelPath = nullptr;
     if(modelPath != nullptr) {

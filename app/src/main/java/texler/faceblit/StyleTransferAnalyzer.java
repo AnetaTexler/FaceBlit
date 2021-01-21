@@ -95,18 +95,19 @@ public class StyleTransferAnalyzer implements ImageAnalysis.Analyzer {
         targetBitmap = Bitmap.createScaledBitmap(targetBitmap, STYLE_SIZE.getWidth(), STYLE_SIZE.getHeight(), true); // match the style size
         byte[] targetBytes = BitmapHelper.bitmapToBytes(targetBitmap); // pixels
 
+        boolean styleChanged = StyleSelectorFragment.getInstance().isStyleChanged();
+        StyleSelectorFragment.getInstance().setStyleChanged(false);
+
         mStylizedBytes = JavaNativeInterface.getStylizedData(
                 mModelPath,
-                StyleSelectorFragment.getInstance().isStyleChanged() ? StyleSelectorFragment.getInstance().getStyleLandmarks() : null,
-                StyleSelectorFragment.getInstance().isStyleChanged() ? StyleSelectorFragment.getInstance().getLookupCubeBytes() : null,
-                StyleSelectorFragment.getInstance().isStyleChanged() ? StyleSelectorFragment.getInstance().getStyleBitmapBytes() : null,
+                styleChanged ? StyleSelectorFragment.getInstance().getStyleLandmarks() : null,
+                styleChanged ? StyleSelectorFragment.getInstance().getLookupCubeBytes() : null,
+                styleChanged ? StyleSelectorFragment.getInstance().getStyleBitmapBytes() : null,
                 targetBytes,
                 targetBitmap.getWidth(),
                 targetBitmap.getHeight(),
                 mLensFacing,
                 mStylizeFaceOnly);
-
-        StyleSelectorFragment.getInstance().setStyleChanged(false);
 
         // Convert bytes to bitmap (override mStylizedBitmap by stylized result only when stylization was successful)
         if (mStylizedBytes != null)
