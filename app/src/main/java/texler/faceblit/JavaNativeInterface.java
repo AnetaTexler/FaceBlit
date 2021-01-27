@@ -11,6 +11,6 @@ public class JavaNativeInterface {
                                                 byte[] targetBytes,
                                                 int w,
                                                 int h,
-                                                int lensFacing,
+                                                boolean votingEnabled,
                                                 boolean stylizeFaceOnly);
 }

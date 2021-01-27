@@ -29,6 +29,7 @@ public class StyleSelectorFragment extends Fragment { //implements IRecyclerView
     private byte[] mStyleBitmapBytes = null;
     private byte[] mLookupCubeBytes = null;
     private boolean mStyleChanged = false;
+    private boolean mVisibleBeforeGalleryEntrance = false;
 
     // Singleton
     public static StyleSelectorFragment getInstance() {
@@ -90,8 +91,16 @@ public class StyleSelectorFragment extends Fragment { //implements IRecyclerView
         return mStyleChanged;
     }
 
+    public boolean isVisibleBeforeGalleryEntrance() {
+        return mVisibleBeforeGalleryEntrance;
+    }
+
     // Setters
     public void setStyleChanged(boolean styleChanged) {
         this.mStyleChanged = styleChanged;
+    }
+
+    public void setVisibleBeforeGalleryEntrance(boolean visibleBeforeGalleryEntrance) {
+        this.mVisibleBeforeGalleryEntrance = visibleBeforeGalleryEntrance;
     }
 }

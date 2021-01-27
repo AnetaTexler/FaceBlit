@@ -7,7 +7,7 @@
 
 #include <opencv2/core.hpp>
 
-unsigned char* stylize(const char* modelPath, const char* styleLandmarkStr, unsigned char* cubeData, unsigned char* styleData, unsigned char* targetData, int width, int height, int lensFacing, bool stylizeFaceOnly);
+unsigned char* stylize(const char* modelPath, const char* styleLandmarkStr, unsigned char* cubeData, unsigned char* styleData, unsigned char* targetData, int width, int height, bool votingEnabled, bool stylizeFaceOnly);
 std::vector<cv::Point2i> getLandmarkPointsFromString(const char* landmarks);
 void alignTargetToStyle(cv::Mat& targetImg, std::vector<cv::Point2i>& targetLandmarks, const std::vector<cv::Point2i>& styleLandmarks);
 cv::Mat getGradient(int width, int height, bool drawGrid);

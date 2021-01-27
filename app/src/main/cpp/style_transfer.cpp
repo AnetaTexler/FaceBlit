@@ -28,12 +28,12 @@
 
 int GRID_SIZE = 10;
 int MEAN = 128;
-int RESIZE_RATIO_LM = 4;
-int RESIZE_RATIO_MLS = 2;
+int RESIZE_RATIO_LM = 2;
+int RESIZE_RATIO_MLS = 1;
 
 
 // Function called only from JNI
-unsigned char* stylize(const char* modelPath, const char* styleLandmarkStr, unsigned char* lookupCubeData, unsigned char* styleData, unsigned char* targetData, int width, int height, int lensFacing, bool stylizeFaceOnly)
+unsigned char* stylize(const char* modelPath, const char* styleLandmarkStr, unsigned char* lookupCubeData, unsigned char* styleData, unsigned char* targetData, int width, int height, bool votingEnabled, bool stylizeFaceOnly)
 {
 	// INPUT IMAGE PREPARATION
 	cv::Mat targetImg = cv::Mat(height, width, CV_8UC4);
@@ -71,7 +71,7 @@ unsigned char* stylize(const char* modelPath, const char* styleLandmarkStr, unsi
 	for (int i = 0; i < targetLandmarks.size(); i++)
 		targetLandmarks[i] = (targetLandmarks[i] * RESIZE_RATIO_LM) / RESIZE_RATIO_MLS; // Adjust target landmarks to fit the MLS size
 
-	// GUIDES AND STYLIZATION
+	// GUIDES
     if (styleLandmarkStr != NULL)
 	    StyleCache::getInstance().styleLandmarks = getLandmarkPointsFromString(styleLandmarkStr);
 
@@ -124,47 +124,39 @@ unsigned char* stylize(const char* modelPath, const char* styleLandmarkStr, unsi
         lookUpCube.copyTo(StyleCache::getInstance().lookUpCube);
     }
 
-	cv::Rect2i stylizationRangeRect;
-	if (stylizeFaceOnly)
-	{
-		int width = targetLandmarks[16].x - targetLandmarks[0].x;
-		int higherY = targetLandmarks[0].y < targetLandmarks[16].y ? targetLandmarks[0].y : targetLandmarks[16].y;
-		int height = targetLandmarks[8].y - (higherY - width / 2);
-		stylizationRangeRect.x = std::max(targetLandmarks[0].x - (width * 0.25), 0.0);
-		stylizationRangeRect.y = std::max((higherY - width / 2) - (height * 0.25), 0.0);
-		stylizationRangeRect.width = std::min(width * 1.5, (double)targetImg.cols);
-		stylizationRangeRect.height = std::min(height * 1.5, (double)targetImg.rows);
-	}
-	else
-	{
-		stylizationRangeRect.x = 0;
-		stylizationRangeRect.y = 0;
-		stylizationRangeRect.width = targetImg.cols;
-		stylizationRangeRect.height = targetImg.rows;
-	}
+	cv::Rect2i headAreaRect = CartesianCoordinateSystem::getHeadAreaRect(targetLandmarks, cv::Size(targetImg.cols, targetImg.rows));
 
+	// STYLEBLIT background
+	cv::Mat stylizedImgNoApp;
+	if (!stylizeFaceOnly)
+		stylizedImgNoApp = styleBlit(StyleCache::getInstance().stylePosGuide, targetPosGuide, cv::Mat(), cv::Mat(), StyleCache::getInstance().lookUpCube, StyleCache::getInstance().styleImg, cv::Rect2i(0, 0, targetImg.cols, targetImg.rows), 20, 10, 0);
+
+	// STYLEBLIT head
 	TimeMeasure t_styleBlit;
-	cv::Mat stylizedImg = styleBlit(StyleCache::getInstance().stylePosGuide, targetPosGuide, StyleCache::getInstance().styleAppGuide, targetAppGuide, StyleCache::getInstance().lookUpCube, StyleCache::getInstance().styleImg, stylizationRangeRect);
-	Log_i("FACEBLIT", std::string() + "StyleBlit time: " + std::to_string(t_styleBlit.elapsed_milliseconds()) + " ms");
+	cv::Mat stylizedHead;
+	if (votingEnabled)
+		stylizedHead = styleBlit_voting(StyleCache::getInstance().stylePosGuide, targetPosGuide, StyleCache::getInstance().styleAppGuide, targetAppGuide, StyleCache::getInstance().lookUpCube, StyleCache::getInstance().styleImg, headAreaRect);
+	else
+		stylizedHead = styleBlit(StyleCache::getInstance().stylePosGuide, targetPosGuide, StyleCache::getInstance().styleAppGuide, targetAppGuide, StyleCache::getInstance().lookUpCube, StyleCache::getInstance().styleImg, headAreaRect);
+	Log_i("FACEBLIT", std::string() + "StyleBlit time" + (votingEnabled ? " (+voting)" : "") + ": " + std::to_string(t_styleBlit.elapsed_milliseconds()) + " ms");
 
+	// FACE MASK
+	TimeMeasure t_getFaceMask;
+	cv::Mat faceMask = getSkinMask(targetImg, targetLandmarks);
+	Log_i("FACEBLIT", std::string() + "TargetFaceMask time: " + std::to_string(t_getFaceMask.elapsed_milliseconds()) + " ms");
 
-	// SHOW ONLY STYLIZED FACE BLENDED TO TARGET
+	// BLEND FACE TO BACKGROUND
+	TimeMeasure t_alphaMaskBlend;
+	cv::Mat resultImg;
     if (stylizeFaceOnly)
-	{
-		TimeMeasure t_getFaceMask;
-        cv::Mat faceMask = getSkinMask(targetImg, targetLandmarks);
-		Log_i("FACEBLIT", std::string() + "GetTargetFaceMask time: " + std::to_string(t_getFaceMask.elapsed_milliseconds()) + " ms");
-		TimeMeasure t_alphaMaskBlend;
-		cv::Mat alphaBlendResult = alphaBlendFG_BG(stylizedImg, targetImg, faceMask, 25.0f);
-		Log_i("FACEBLIT", std::string() + "AlphaBlend time: " + std::to_string(t_alphaMaskBlend.elapsed_milliseconds()) + " ms");
-
-		cvtColor(alphaBlendResult, alphaBlendResult, cv::COLOR_BGR2RGBA);
-        return alphaBlendResult.data;
-    }
+		resultImg = alphaBlendFG_BG(stylizedHead, targetImg, faceMask, 25.0f);
+	else
+		resultImg = alphaBlendFG_BG(stylizedHead, stylizedImgNoApp, faceMask, 25.0f);
+	Log_i("FACEBLIT", std::string() + "AlphaBlend time: " + std::to_string(t_alphaMaskBlend.elapsed_milliseconds()) + " ms");
 
     // Convert from BGR (OpenCV default) to RGBA (Java Bitmap default)
-	cv::cvtColor(stylizedImg, stylizedImg, cv::COLOR_BGR2RGBA);
-	return stylizedImg.data;
+	cv::cvtColor(resultImg, resultImg, cv::COLOR_BGR2RGBA);
+	return resultImg.data;
 }
 
 
@@ -377,7 +369,7 @@ cv::Mat getSkinMask(const cv::Mat& image, const std::vector<cv::Point2i>& landma
 	cv::Point2i faceContourPoints[17];
 	std::copy(landmarks.begin(), landmarks.begin() + 17, faceContourPoints);
 
-	int faceWidth = (faceContourPoints[16].x - faceContourPoints[0].x);
+	/*int faceWidth = (faceContourPoints[16].x - faceContourPoints[0].x);
 	
 	cv::Rect foreheadROI(faceContourPoints[0].x,
 						 MAX(faceContourPoints[0].y - (faceWidth * 0.75), 0),
@@ -441,7 +433,7 @@ cv::Mat getSkinMask(const cv::Mat& image, const std::vector<cv::Point2i>& landma
 			}
 		}
 	}
-
+	*/
 	
 	/* // DEBUG
 	if (USE_YUV)
@@ -478,7 +470,7 @@ cv::Mat getSkinMask(const cv::Mat& image, const std::vector<cv::Point2i>& landma
 	*/
 
 	cv::Mat resultImg = cv::Mat::zeros(image.rows, image.cols, CV_32FC1);
-	resultforehead.copyTo(cv::Mat(resultImg, foreheadROI));
+	////resultforehead.copyTo(cv::Mat(resultImg, foreheadROI));
 
 	//for (int i = 0; i < 16; i++) // DEBUG
 	//	cv::line(resultImg, faceContourPoints[i], faceContourPoints[i + 1], cv::Scalar(1.0), 4, cv::LINE_AA);

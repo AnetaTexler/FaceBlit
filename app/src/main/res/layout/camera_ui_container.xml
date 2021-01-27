@@ -32,37 +32,63 @@
         app:layout_constraintBottom_toBottomOf="parent"
         android:visibility="invisible" />
 
-    <FrameLayout
-        android:id="@+id/top_frame"
+    <RelativeLayout
+        android:id="@+id/top_relative_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_margin="@dimen/margin_xsmall"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/dummy_view"
+        app:layout_constraintBottom_toTopOf="@id/dummy_view"
         android:background="@android:color/transparent" >
 
         <ImageButton
             android:id="@+id/camera_switch_button"
             android:layout_width="@dimen/round_button_small"
             android:layout_height="@dimen/round_button_small"
-            android:layout_gravity="center_vertical|start"
+            android:layout_centerVertical="true"
+            android:layout_alignParentStart="true"
             android:scaleType="fitCenter"
             android:background="@android:color/transparent"
             app:srcCompat="@drawable/ic_switch"
             android:contentDescription="@string/switch_camera_button_alt" />
 
-        <ImageButton
-            android:id="@+id/stylize_scope_button"
-            android:layout_width="@dimen/round_button_small"
-            android:layout_height="@dimen/round_button_small"
-            android:layout_gravity="center_vertical|end"
-            android:scaleType="fitCenter"
-            android:background="@android:color/transparent"
-            app:srcCompat="@drawable/ic_stylize_scope"
-            android:contentDescription="@string/stylization_scope_button_alt" />
+        <androidx.appcompat.widget.AppCompatSpinner
+            android:id="@+id/resolution_spinner"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_margin="@dimen/spacing_large"
+            android:layout_toStartOf="@id/voting_toggle_button"
+            android:layout_toEndOf="@id/camera_switch_button"
+            android:textAlignment="center" />
 
-    </FrameLayout>
+        <ToggleButton
+            android:id="@+id/voting_toggle_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_toStartOf="@id/stylization_scope_toggle_button"
+            android:textOff="@string/voting"
+            android:textOn="@string/voting"
+            android:theme="@style/ToggleButton"
+            android:visibility="visible"
+            android:contentDescription="@string/voting_toggle" />
+
+        <ToggleButton
+            android:id="@+id/stylization_scope_toggle_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_large"
+            android:layout_centerVertical="true"
+            android:layout_alignParentEnd="true"
+            android:textOff="@string/face_only"
+            android:textOn="@string/face_only"
+            android:theme="@style/ToggleButton"
+            android:visibility="visible"
+            android:contentDescription="@string/stylization_scope_toggle" />
+
+    </RelativeLayout>
 
 
     <FrameLayout
@@ -106,8 +132,6 @@
             android:contentDescription="@string/show_styles_button_alt" />
 
     </FrameLayout>
-
-
 
 
 

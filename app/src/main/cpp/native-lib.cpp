@@ -15,7 +15,7 @@ Java_texler_faceblit_JavaNativeInterface_getStylizedData(JNIEnv *env, jobject /*
                                                          jbyteArray styleImgBytes,
                                                          jbyteArray targetImgBytes,
                                                          jint width, jint height,
-                                                         jint lensFacing,
+                                                         jboolean votingEnabled,
                                                          jboolean stylizeFaceOnly) {
 
     Log_i("FACEBLIT", "#######################");
@@ -58,7 +58,7 @@ Java_texler_faceblit_JavaNativeInterface_getStylizedData(JNIEnv *env, jobject /*
                                          styleImgChars,
                                          targetImgChars,
                                          width, height,
-                                         lensFacing,
+                                         votingEnabled,
                                          stylizeFaceOnly);
     // --------------------------------------------------------------------------------------------------------------
 

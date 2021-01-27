@@ -15,6 +15,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentStatePagerAdapter;
+import androidx.fragment.app.FragmentTransaction;
 import androidx.navigation.Navigation;
 import androidx.viewpager.widget.ViewPager;
 

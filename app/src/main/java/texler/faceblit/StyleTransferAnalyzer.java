@@ -39,7 +39,8 @@ public class StyleTransferAnalyzer implements ImageAnalysis.Analyzer {
     private Bitmap mStylizedBitmap; // stylized image
 
     private int mLensFacing;
-    private boolean mStylizeFaceOnly = true;
+    private boolean mStylizeFaceOnly;
+    private boolean mVotingEnabled;
     private ImageView mImageView;
     private TextView mTextView;
     private StringBuilder mStatistics;
@@ -63,14 +64,15 @@ public class StyleTransferAnalyzer implements ImageAnalysis.Analyzer {
         this.mHandler = new Handler(Looper.getMainLooper());
         this.mFrameTimestamps = new ArrayDeque<>(5);
         this.mDecimalFormat = new DecimalFormat("#.##");
+        this.mStylizeFaceOnly = true;
     }
+
 
     @SuppressLint("UnsafeExperimentalUsageError") // ImageProxy.getImage() is experimental
     @Override
     public void analyze(@NonNull ImageProxy imageProxy) { // CameraX produces images in YUV_420_888 format. The default analyzer resolution is 640x480
         if (imageProxy == null) return;
-        //if (isAnalyzing.get()) return;
-        //isAnalyzing.set(true);
+
         if (StyleSelectorFragment.getInstance().getStyleLandmarks() == null) { // style is not set yet
             imageProxy.close();
             return;
@@ -92,7 +94,7 @@ public class StyleTransferAnalyzer implements ImageAnalysis.Analyzer {
             targetBitmap = BitmapHelper.landscapeToPortraitRotationLeft(targetBitmap);
         }
 
-        targetBitmap = Bitmap.createScaledBitmap(targetBitmap, STYLE_SIZE.getWidth(), STYLE_SIZE.getHeight(), true); // match the style size
+        //targetBitmap = Bitmap.createScaledBitmap(targetBitmap, STYLE_SIZE.getWidth(), STYLE_SIZE.getHeight(), true); // match the style size
         byte[] targetBytes = BitmapHelper.bitmapToBytes(targetBitmap); // pixels
 
         boolean styleChanged = StyleSelectorFragment.getInstance().isStyleChanged();
@@ -106,15 +108,14 @@ public class StyleTransferAnalyzer implements ImageAnalysis.Analyzer {
                 targetBytes,
                 targetBitmap.getWidth(),
                 targetBitmap.getHeight(),
-                mLensFacing,
+                mVotingEnabled,
                 mStylizeFaceOnly);
 
         // Convert bytes to bitmap (override mStylizedBitmap by stylized result only when stylization was successful)
         if (mStylizedBytes != null)
-        {
             mStylizedBitmap = BitmapHelper.bytesToBitmap(mStylizedBytes, targetBitmap.getWidth(), targetBitmap.getHeight(), targetBitmap.getConfig());
-            //mStylizedBitmap = BitmapFactory.decodeByteArray(mStylizedBytes, 0, mStylizedBytes.length);
-        }
+        else
+            mStylizedBitmap = targetBitmap;
 
         mHandler.post(new Runnable() { // run on the next run loop on the main thread.
             @Override
@@ -127,6 +128,14 @@ public class StyleTransferAnalyzer implements ImageAnalysis.Analyzer {
         imageProxy.close(); // IMPORTANT!
     }
 
+
+    public void setStylizeFaceOnly(boolean stylizeFaceOnly) {
+        this.mStylizeFaceOnly = stylizeFaceOnly;
+    }
+
+    public void setVotingEnabled(boolean votingEnabled) {
+        this.mVotingEnabled = votingEnabled;
+    }
 
     private double getFPS(long currentTime) { // Compute the FPS using a moving average
         while (mFrameTimestamps.size() >= mFrameRateWindow)

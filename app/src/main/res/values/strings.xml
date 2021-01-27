@@ -13,7 +13,9 @@
     <string name="delete_dialog">Delete current photo?</string>
     <string name="delete_title">Confirm</string>
     <string name="face_only">Face only</string>
-    <string name="stylization_scope_button_alt">Switch stylization scope</string>
+    <string name="voting">Voting</string>
+    <string name="stylization_scope_toggle">Toggle stylization scope</string>
+    <string name="voting_toggle">Toggle voting enabled/disabled</string>
     <string name="show_styles_button_alt">Show styles</string>
     <string name="style_img_view">Style image</string>
     <string name="stylized_frame_view">Stylized frame view</string>

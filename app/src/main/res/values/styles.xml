@@ -7,4 +7,8 @@
         <item name="android:windowTranslucentStatus">true</item>
         <item name="android:windowTranslucentNavigation">true</item>
     </style>
+
+    <style name="ToggleButton" parent="Base.Widget.AppCompat.Button">
+        <item name="colorAccent">#00FF00</item>
+    </style>
 </resources>

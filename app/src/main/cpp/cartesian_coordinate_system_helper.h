@@ -127,6 +127,21 @@ public:
 	}
 
 
+	static cv::Rect2i getHeadAreaRect(const std::vector<cv::Point2i>& faceLandmarks, const cv::Size imgSize)
+	{
+		cv::Rect2i rect;
+		int width = faceLandmarks[16].x - faceLandmarks[0].x;
+		int higherY = faceLandmarks[0].y < faceLandmarks[16].y ? faceLandmarks[0].y : faceLandmarks[16].y;
+		int height = faceLandmarks[8].y - (higherY - width / 2);
+		rect.x = std::max(faceLandmarks[0].x - (width * 0.25), 0.0);
+		rect.y = std::max((higherY - width / 2) - (height * 0.25), 0.0);
+		rect.width = std::min(width * 1.5, (double)imgSize.width);
+		rect.height = std::min(height * 1.5, (double)imgSize.height);
+
+		return rect;
+	}
+
+
 	static std::vector<cv::Point> getContourPoints(cv::Mat& image, bool drawPoints = false)
 	{
 		cv::Mat imageCopy = image.clone();

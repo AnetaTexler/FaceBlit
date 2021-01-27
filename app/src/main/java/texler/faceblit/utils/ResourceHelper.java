@@ -42,19 +42,19 @@ public class ResourceHelper {
 
         switch (name){
             case "bronzestatue":
-                id_img = R.drawable.style_bronzestatue;
-                id_lm = R.raw.lm_bronzestatue;
-                id_lut = R.raw.lut_bronzestatue;
+                id_img = R.drawable.style_bronzestatue_480x640;
+                id_lm = R.raw.lm_bronzestatue_480x640;
+                id_lut = R.raw.lut_bronzestatue_480x640;
                 break;
             case "charcoalman":
-                id_img = R.drawable.style_charcoalman;
-                id_lm = R.raw.lm_charcoalman;
-                id_lut = R.raw.lut_charcoalman;
+                id_img = R.drawable.style_charcoalman_480x640;
+                id_lm = R.raw.lm_charcoalman_480x640;
+                id_lut = R.raw.lut_charcoalman_480x640;
                 break;
             case "expressive":
-                id_img = R.drawable.style_expressive;
-                id_lm = R.raw.lm_expressive;
-                id_lut = R.raw.lut_expressive;
+                id_img = R.drawable.style_expressive_480x640;
+                id_lm = R.raw.lm_expressive_480x640;
+                id_lut = R.raw.lut_expressive_480x640;
                 break;
             case "fonz":
                 id_img = R.drawable.style_fonz;

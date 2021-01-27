@@ -177,7 +177,7 @@ cv::Mat extendHeight(const cv::Mat& image, const int dstHeight)
 // ############################################################################
 // #							VIDEO STYLIZATION							  #
 // ############################################################################
-int main()
+int xxmain()
 {
 	// *** PARAMETERS TO SET ***********************************************************************************************************
 	const std::string root = "C:\\Users\\Aneta\\Desktop\\videos";
@@ -911,7 +911,7 @@ int xxxmain()
 // ############################################################################
 // #							SINGLE IMAGE TEST							  #
 // ############################################################################
-int xxmain()
+int main()
 {
 	// *** PARAMETERS TO SET ***********************************************************************************************************
 	//const std::string root = "C:\\Users\\Aneta\\Desktop\\faces_test_subset";
@@ -919,7 +919,7 @@ int xxmain()
 	std::string rawPath = "..\\app\\src\\main\\res\\raw\\";
 	std::string drawablePath = "..\\app\\src\\main\\res\\drawable\\";
 
-	const std::string styleName = "style_het.png";		// name of a style PNG from drawablePath
+	const std::string styleName = "style_expressive.png";		// name of a style PNG from drawablePath
 	const std::string targetName = "target1.png";				// name of a target PNG
 	const bool loadTargetLandmarks = false;						// true = landmarks are loaded from file "lm_<targetName>.txt", false = DLIB detector is called 
 	const int NNF_patchsize = 3;								// voting patch size (0 for no voting)
@@ -939,7 +939,21 @@ int xxmain()
 	styleLandmarkFile.close();
 	std::vector<cv::Point2i> styleLandmarks = getLandmarkPointsFromString(styleLandmarkStr.c_str());
 	cv::Mat lookUpCube = loadLookUpCube(rawPath + "lut_" + styleNameWithoutExtensionAndPrefix + ".bytes");
-	
+
+	/* // Generate style resources for smaller resolution
+	cv::resize(styleImg, styleImg, cv::Size(480, 640));
+	cv::Mat styleGpos = getGradient(480, 640, false); // G_pos
+	cv::Mat styleGapp = getAppGuide(styleImg, true); // G_app
+	cv::imwrite(drawablePath + "style_expressive_480x640.png", styleImg);
+	for (int i = 0; i < styleLandmarks.size(); i++)
+		styleLandmarks[i] *= 0.625;
+	CartesianCoordinateSystem::drawLandmarks(styleImg, styleLandmarks);
+	Window::imgShow("lm", styleImg);
+	CartesianCoordinateSystem::savePointsIntoFile(styleLandmarks, rawPath + "lm_expressive_480x640.txt");
+	lookUpCube = getLookUpCube(styleGpos, styleGapp); // 3D table that maps Pos_Red, Pos_Green, App values to coordinates u, v in style
+	saveLookUpCube(lookUpCube, rawPath + "lut_expressive_480x640.bytes");
+	*/
+
 	// --- READ TARGET FILES ----------------
 	cv::Mat targetImg = cv::imread(drawablePath + targetName);
 	std::vector<cv::Point2i> targetLandmarks;

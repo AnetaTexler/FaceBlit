@@ -49,6 +49,6 @@
         app:layout_constraintStart_toStartOf="@id/view_finder"
         android:background="@android:color/transparent"
         android:textColor="@android:color/white"
-        android:textSize="18sp" />
+        android:textSize="24sp" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

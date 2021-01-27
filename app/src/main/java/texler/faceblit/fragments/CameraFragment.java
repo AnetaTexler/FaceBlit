@@ -22,9 +22,11 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.AlphaAnimation;
 import android.webkit.MimeTypeMap;
+import android.widget.CompoundButton;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.ToggleButton;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -82,16 +84,19 @@ public class CameraFragment extends Fragment {
     private LocalBroadcastManager mLocalBroadcastManager;
 
     private int mDisplayId = -1;
-    private int mLensFacing = CameraSelector.LENS_FACING_FRONT;
+    private int mLensFacing;// = CameraSelector.LENS_FACING_FRONT;
+    private int mLensFacingBeforeGalleryEntrance;
     private Preview mPreview = null;
     private ImageCapture mImageCapture = null;
     private ImageAnalysis mImageAnalysis = null;
+    private StyleTransferAnalyzer mStyleTransferAnalyzer = null;
     private Camera mCamera = null;
     private ProcessCameraProvider mCameraProvider = null;
     private DisplayManager mDisplayManager = null;
     private AlphaAnimation mAlphaAnimation = null;
     private ImageView mImageView = null; // image view for displaying a stylization result
     private TextView mTextView = null; // test view for displaying a stylization statistics
+    private boolean mStylizeFaceOnly = true; // Stylization scope - face vs. entire image
 
     /** Blocking camera operations are performed using this executor */
     private ExecutorService mCameraExecutor;
@@ -219,8 +224,12 @@ public class CameraFragment extends Fragment {
             public void run() {
                 try {
                     mCameraProvider = cameraProviderFuture.get();
-                    // Select lensFacing depending on the available cameras
-                    if (hasFrontCamera()) {
+                    // Select lensFacing depending on the available cameras or the last state
+                    if (mLensFacingBeforeGalleryEntrance != -1) {
+                        mLensFacing = mLensFacingBeforeGalleryEntrance;
+                        mLensFacingBeforeGalleryEntrance = -1;
+                    }
+                    else if (hasFrontCamera()) {
                         mLensFacing = CameraSelector.LENS_FACING_FRONT;
                     }
                     else if (hasBackCamera()) {
@@ -282,8 +291,8 @@ public class CameraFragment extends Fragment {
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST) // In this non-blocking mode, the executor receives the last available frame from the camera at the time that the analyze() method is called. If the method takes longer than the latency of a single frame at the current FPS, some frames might be skipped
                 //.setTargetResolution(STYLE_SIZE)
                 .build();
-        mImageAnalysis.setAnalyzer(mCameraExecutor, new StyleTransferAnalyzer(mLensFacing, mImageView, mTextView));
-
+        mStyleTransferAnalyzer = new StyleTransferAnalyzer(mLensFacing, mImageView, mTextView);
+        mImageAnalysis.setAnalyzer(mCameraExecutor, mStyleTransferAnalyzer);
 
         // Must unbind the use-cases before rebinding them
         cameraProvider.unbindAll();
@@ -317,11 +326,18 @@ public class CameraFragment extends Fragment {
                 List<File> files = Arrays.asList(Objects.requireNonNull(mOutputDir.listFiles(file ->
                         GalleryFragment.EXTENSION_WHITELIST.contains(file.getName().substring(file.getName().lastIndexOf(".") + 1).toUpperCase(Locale.ROOT)))));
                 if (!files.isEmpty()) {
-                    Collections.sort(files, Collections.reverseOrder());
+                    files.sort(Collections.reverseOrder());
                     setGalleryThumbnail(Uri.fromFile(files.get(0)));
                 }
             }
         });
+
+        // Restore StyleSelectorFragment state before gallery entrance
+        if (StyleSelectorFragment.getInstance().isVisibleBeforeGalleryEntrance()) {
+            FragmentTransaction fragmentTransaction = requireActivity().getSupportFragmentManager().beginTransaction();
+            if (StyleSelectorFragment.getInstance().isAdded())
+                fragmentTransaction.show(StyleSelectorFragment.getInstance()).addToBackStack(null).commit();
+        }
 
         // Listener for button used to capture photo
         controlsView.findViewById(R.id.camera_capture_button).setOnClickListener(new View.OnClickListener() {
@@ -353,6 +369,7 @@ public class CameraFragment extends Fragment {
                             requireActivity().sendBroadcast(new Intent(android.hardware.Camera.ACTION_NEW_PICTURE, savedUri));
                         }
                         // If the folder selected is an external media directory, this is unnecessary but otherwise other apps will not be able to access our images unless we scan them using [MediaScannerConnection]
+                        //requireActivity().sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, savedUri)); // deprecated
                         String mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(savedUri.getPath().substring(savedUri.getPath().lastIndexOf(".") + 1));
                         MediaScannerConnection.scanFile(getContext(), new String[] { savedUri.getPath() }, new String[] { mimeType }, null);
                     }
@@ -383,15 +400,44 @@ public class CameraFragment extends Fragment {
         });
 
         // Setup for button used to switch cameras
-        ImageButton switchButton = controlsView.findViewById(R.id.camera_switch_button);
-        switchButton.setEnabled(false); // Disable the button until the camera is set up
+        ImageButton camSwitchButton = controlsView.findViewById(R.id.camera_switch_button);
+        camSwitchButton.setEnabled(false); // Disable the button until the camera is set up
         // Listener for button used to switch cameras. Only called if the button is enabled
-        switchButton.setOnClickListener(new View.OnClickListener() {
+        camSwitchButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 view.startAnimation(mAlphaAnimation);
                 mLensFacing = (CameraSelector.LENS_FACING_FRONT == mLensFacing) ? CameraSelector.LENS_FACING_BACK : CameraSelector.LENS_FACING_FRONT;
                 bindCameraUseCases(); // Re-bind use cases to update selected camera
+            }
+        });
+
+        // Setup for toggle button (face vs. entire image stylization)
+        ToggleButton scopeToggleButton = controlsView.findViewById(R.id.stylization_scope_toggle_button);
+        scopeToggleButton.setChecked(true);
+        //mStylizeFaceOnly = true;
+        scopeToggleButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    //mStylizeFaceOnly = true;
+                    mStyleTransferAnalyzer.setStylizeFaceOnly(true);
+                } else {
+                    //mStylizeFaceOnly = false;
+                    mStyleTransferAnalyzer.setStylizeFaceOnly(false);
+                }
+            }
+        });
+
+        // Setup for toggle button (voting on/off)
+        ToggleButton votingToggleButton = controlsView.findViewById(R.id.voting_toggle_button);
+        votingToggleButton.setChecked(false);
+        votingToggleButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    mStyleTransferAnalyzer.setVotingEnabled(true);
+                } else {
+                    mStyleTransferAnalyzer.setVotingEnabled(false);
+                }
             }
         });
 
@@ -402,6 +448,16 @@ public class CameraFragment extends Fragment {
                 view.startAnimation(mAlphaAnimation);
                 // Only navigate when the gallery has photos
                 if (Objects.requireNonNull(mOutputDir.listFiles()).length > 0) {
+                    if (StyleSelectorFragment.getInstance().isVisible()) {
+                        StyleSelectorFragment.getInstance().setVisibleBeforeGalleryEntrance(true); // preserve state before gallery entrance
+                        FragmentTransaction fragmentTransaction = requireActivity().getSupportFragmentManager().beginTransaction();
+                        fragmentTransaction.hide(StyleSelectorFragment.getInstance());
+                        fragmentTransaction.commit();
+                    }
+                    else {
+                        StyleSelectorFragment.getInstance().setVisibleBeforeGalleryEntrance(false);
+                    }
+                    mLensFacingBeforeGalleryEntrance = mLensFacing; // preserve state before gallery entrance
                     Navigation.findNavController(requireActivity(), R.id.fragment_container)
                             .navigate(CameraFragmentDirections.actionCameraToGallery(mOutputDir.getAbsolutePath()));
                 }
