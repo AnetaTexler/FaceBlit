@@ -31,15 +31,22 @@ public:
 	}
 
 
+	static bool isPointInsideImage(const cv::Point2i& point, const cv::Mat& image)
+	{
+		return !(point.x < 0 || point.y < 0 ||
+				 point.x >= image.cols || point.y >= image.rows);
+	}
+
+
 	static void clampPointInsideImage(cv::Point& point, const cv::Size2i& size)
 	{
 		if (point.x < 0) point.x = 0;
 		if (point.y < 0) point.y = 0;
-		if (point.x > size.width) point.x = size.width;
-		if (point.y > size.height) point.y = size.height;
+		if (point.x >= size.width) point.x = size.width - 1;
+		if (point.y >= size.height) point.y = size.height - 1;
 
-		if (point.x < 0 || point.y < 0 || point.x > size.width || point.y > size.height) 
-			Log_i("FACEBLIT", "A landmark [" + std::to_string(point.x) + ", " + std::to_string(point.y) + "] was clamped!!!");
+		//if (point.x < 0 || point.y < 0 || point.x >= size.width || point.y >= size.height)
+		//	Log_i("FACEBLIT", "A landmark [" + std::to_string(point.x) + ", " + std::to_string(point.y) + "] was clamped!!!");
 	}
 
 
@@ -47,11 +54,11 @@ public:
 	{
 		if (x < 0) x = 0;
 		if (y < 0) y = 0;
-		if (x > size.width) x = size.width;
-		if (y > size.height) y = size.height;
+		if (x >= size.width) x = size.width - 1;
+		if (y >= size.height) y = size.height - 1;
 
-		if (x < 0 || y < 0 || x > size.width || y > size.height)
-			Log_i("FACEBLIT", "A landmark [" + std::to_string(x) + ", " + std::to_string(y) + "] was clamped!!!");
+		//if (x < 0 || y < 0 || x >= size.width || y >= size.height)
+		//	Log_i("FACEBLIT", "A landmark [" + std::to_string(x) + ", " + std::to_string(y) + "] was clamped!!!");
 	}
 
 

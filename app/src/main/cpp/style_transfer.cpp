@@ -68,6 +68,10 @@ unsigned char* stylize(const char* modelPath, const char* styleLandmarkStr, unsi
 	if (!success) return NULL;
 		
 	targetLandmarks = detectionResult.second;
+
+	for (int i = 0; i < targetLandmarks.size(); i++)
+		CartesianCoordinateSystem::clampPointInsideImage(targetLandmarks[i], smallTargetImg.size());
+
 	for (int i = 0; i < targetLandmarks.size(); i++)
 		targetLandmarks[i] = (targetLandmarks[i] * RESIZE_RATIO_LM) / RESIZE_RATIO_MLS; // Adjust target landmarks to fit the MLS size
 
@@ -336,31 +340,39 @@ float skinError(const cv::Vec3b& samplePixelCol, const cv::Vec3b& currPixelCol, 
 	//return exp((-1* colDiffSumSquared) / sigmaSquared);
 }
 
-cv::Vec3b sampleColors(const cv::Mat& image, const cv::Point2i& samplePoint) 
+cv::Vec3b sampleColors(const cv::Mat& image, const cv::Point2i& samplePoint)
 {
-	std::vector<cv::Vec3b> sampledColors;
-	sampledColors.push_back(image.at<cv::Vec3b>(samplePoint));
-	sampledColors.push_back(image.at<cv::Vec3b>(samplePoint + cv::Point2i(-5, -5)));
-	sampledColors.push_back(image.at<cv::Vec3b>(samplePoint + cv::Point2i(-5, 0)));
-	sampledColors.push_back(image.at<cv::Vec3b>(samplePoint + cv::Point2i(-5, 5)));
-	sampledColors.push_back(image.at<cv::Vec3b>(samplePoint + cv::Point2i(0, -5)));
-	sampledColors.push_back(image.at<cv::Vec3b>(samplePoint + cv::Point2i(0, 0)));
-	sampledColors.push_back(image.at<cv::Vec3b>(samplePoint + cv::Point2i(0, 5)));
-	sampledColors.push_back(image.at<cv::Vec3b>(samplePoint + cv::Point2i(5, -5)));
-	sampledColors.push_back(image.at<cv::Vec3b>(samplePoint + cv::Point2i(5, 0)));
-	sampledColors.push_back(image.at<cv::Vec3b>(samplePoint + cv::Point2i(5, 5)));
-	
+	std::vector<cv::Point2i> pointsToSample;
+	pointsToSample.push_back(samplePoint + cv::Point2i(-5, -5));
+	pointsToSample.push_back(samplePoint + cv::Point2i(-5, 0));
+	pointsToSample.push_back(samplePoint + cv::Point2i(-5, 5));
+	pointsToSample.push_back(samplePoint + cv::Point2i(0, -5));
+	pointsToSample.push_back(samplePoint);
+	pointsToSample.push_back(samplePoint + cv::Point2i(0, 5));
+	pointsToSample.push_back(samplePoint + cv::Point2i(5, -5));
+	pointsToSample.push_back(samplePoint + cv::Point2i(5, 0));
+	pointsToSample.push_back(samplePoint + cv::Point2i(5, 5));
+
 	int accB = 0;
 	int accG = 0;
 	int accR = 0;
-	for (int i = 0; i < sampledColors.size(); i++) 
+	int sampledColorsCount = 0;
+	for (int i = 0; i < pointsToSample.size(); i++)
 	{
-		accB += sampledColors[i][0];
-		accG += sampledColors[i][1];
-		accR += sampledColors[i][2];
+		if(!CartesianCoordinateSystem::isPointInsideImage(pointsToSample[i], image))
+		{
+			continue;
+		}
+
+		cv::Vec3b sampledColor = image.at<cv::Vec3b>(pointsToSample[i]);
+
+		accB += sampledColor[0];
+		accG += sampledColor[1];
+		accR += sampledColor[2];
+		sampledColorsCount++;
 	}
 
-	return cv::Vec3b(accB / sampledColors.size(), accG / sampledColors.size(), accR / sampledColors.size());
+	return cv::Vec3b(accB / sampledColorsCount, accG / sampledColorsCount, accR / sampledColorsCount);
 }
 
 
@@ -369,20 +381,19 @@ cv::Mat getSkinMask(const cv::Mat& image, const std::vector<cv::Point2i>& landma
 	cv::Point2i faceContourPoints[17];
 	std::copy(landmarks.begin(), landmarks.begin() + 17, faceContourPoints);
 
-	/*int faceWidth = (faceContourPoints[16].x - faceContourPoints[0].x);
-	
+	int faceWidth = (faceContourPoints[16].x - faceContourPoints[0].x);
+
 	cv::Rect foreheadROI(faceContourPoints[0].x,
 						 MAX(faceContourPoints[0].y - (faceWidth * 0.75), 0),
 						 faceWidth,
-						 faceWidth * 0.75);
+						 MIN(faceWidth * 0.75, faceContourPoints[0].y));
 
 	cv::Mat foreheadRect;
 	cv::Mat(image, foreheadROI).copyTo(foreheadRect);
 
-	cv::Point2i samplePoint_1((faceWidth/4)*1, foreheadRect.rows - faceWidth/4);
-	cv::Point2i samplePoint_2((faceWidth/4)*2, foreheadRect.rows - faceWidth/4);
-	cv::Point2i samplePoint_3((faceWidth/4)*3, foreheadRect.rows - faceWidth/4);
-
+	cv::Point2i samplePoint_1((faceWidth/4)*1, MAX(foreheadRect.rows - faceWidth/4, 0));
+	cv::Point2i samplePoint_2((faceWidth/4)*2, MAX(foreheadRect.rows - faceWidth/4, 0));
+	cv::Point2i samplePoint_3((faceWidth/4)*3, MAX(foreheadRect.rows - faceWidth/4, 0));
 
 	bool USE_YUV = true;
 	float SKIN_ERROR_THRESHOLD = 50; // roughly 500-2000 for RGB; roughly 20-200 for YUV
@@ -433,7 +444,6 @@ cv::Mat getSkinMask(const cv::Mat& image, const std::vector<cv::Point2i>& landma
 			}
 		}
 	}
-	*/
 	
 	/* // DEBUG
 	if (USE_YUV)
@@ -470,7 +480,7 @@ cv::Mat getSkinMask(const cv::Mat& image, const std::vector<cv::Point2i>& landma
 	*/
 
 	cv::Mat resultImg = cv::Mat::zeros(image.rows, image.cols, CV_32FC1);
-	////resultforehead.copyTo(cv::Mat(resultImg, foreheadROI));
+	resultforehead.copyTo(cv::Mat(resultImg, foreheadROI));
 
 	//for (int i = 0; i < 16; i++) // DEBUG
 	//	cv::line(resultImg, faceContourPoints[i], faceContourPoints[i + 1], cv::Scalar(1.0), 4, cv::LINE_AA);
