@@ -881,12 +881,18 @@ cv::Mat styleBlit(const cv::Mat& stylePosGuide, const cv::Mat& targetPosGuide, c
 		{
 			if (coveredPixels.at<int>(rowT, colT) == 0) // not stylized pixel yet
 			{
-				// normalized values of G (rows) and R (cols) channels are coordinates of a corresponding pixel in the original gradient:
-				//const cv::Point2i styleSeedPoint(targetPosGuide.at<cv::Vec3b>(rowT, colT).val[2] * xNorm, /*R*/ targetPosGuide.at<cv::Vec3b>(rowT, colT).val[1] * yNorm); /*G*/
-
-				const cv::Point2i styleSeedPoint(lookUpCube.at<cv::Vec2w>(targetPosGuide.at<cv::Vec3b>(rowT, colT).val[2],
+				cv::Point2i styleSeedPoint;
+				if (lambdaApp == 0) // Without appearance
+				{
+					// normalized values of G (rows) and R (cols) channels are coordinates of a corresponding pixel in the original gradient:
+					styleSeedPoint = cv::Point2i(targetPosGuide.at<cv::Vec3b>(rowT, colT).val[2] * xNorm, /*R*/ targetPosGuide.at<cv::Vec3b>(rowT, colT).val[1] * yNorm); /*G*/
+				}
+				else
+				{
+					styleSeedPoint = cv::Point2i(lookUpCube.at<cv::Vec2w>(targetPosGuide.at<cv::Vec3b>(rowT, colT).val[2],
 																		  targetPosGuide.at<cv::Vec3b>(rowT, colT).val[1],
-																		  targetAppGuide.empty() ? 0 : targetAppGuide.at<uchar>(rowT, colT)));
+																		  targetAppGuide.at<uchar>(rowT, colT)));
+				}
 
 				//BoxSeedGrow(rowT, colT, styleSeedPoint, boxSize, stylePosGuide, targetPosGuide, styleAppGuide, targetAppGuide, resultImg, styleImg, coveredPixels, chunkNumber, threshold);
 				DFSSeedGrow(cv::Point2i(colT, rowT), styleSeedPoint, stylePosGuide, targetPosGuide, styleAppGuide, targetAppGuide, resultImg, styleImg, coveredPixels, chunkNumber, threshold, lambdaPos, lambdaApp);
