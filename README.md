@@ -10,7 +10,7 @@ _A. Texler, [O. Texler](https://ondrejtexler.github.io/), [M. Kučera](https://w
 
 ![Teaser](docs/teaser.png)
 
-### Build and Run - Desktop (Windows)
+## Build and Run - Desktop (Windows)
 * There is a Visual Studio project in directory *FaceBlit/VS*
 * OpenCV version: 4.5.0
   * This repository contains necessary .lib files and includes
@@ -20,8 +20,22 @@ _A. Texler, [O. Texler](https://ondrejtexler.github.io/), [M. Kučera](https://w
   * It is added to the project as a "Header-only library" - file *FaceBlit/app/src/main/cpp/source.cpp*
 
   
-### Notes
+## Notes
 * All CPP sources (except main.cpp) are located in *FaceBlit/app/src/main/cpp*
 * Style exemplars (.png) are located in *FaceBlit/app/src/main/res/drawable*
 * Files with detected landmarks (.txt) and lookup tables (.bytes) for each style are located in *FaceBlit/app/src/main/res/raw*
 
+## License
+Free to use for research or commercial purposes.
+
+## Citing
+If you find _FaceBlit_ useful for your research or work, please use the following BibTeX entry.
+
+    @Article{Texler21-I3D,
+        author    = "Aneta Texler and Ond\v{r}ej Texler and Michal Ku\v{c}era and Menglei Chai and Daniel S\'{y}kora",
+        title     = "FaceBlit: Instant Real-time Example-based Style Transfer to Facial Videos",
+        journal   = "Proceedings of the ACM in Computer Graphics and Interactive Techniques",
+        volume    = "4",
+        number    = "1",
+        year      = "2021",
+    }
