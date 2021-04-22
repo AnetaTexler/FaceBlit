@@ -10,15 +10,23 @@ _A. Texler, [O. Texler](https://ondrejtexler.github.io/), [M. Kučera](https://w
 
 ![Teaser](docs/teaser.png)
 
-## Build and Run - Desktop (Windows)
+## Build
+
+### Windows
 * There is a Visual Studio project in directory *FaceBlit/VS*
 * OpenCV version: 4.5.0
   * This repository contains necessary .lib files and includes
   * .dll files need to be downloaded (https://sourceforge.net/projects/opencvlibrary/files/4.5.0/opencv-4.5.0-vc14_vc15.exe/download - pre-built for Windows)
-    * *opencv_world450d.dll* and *opencv_world450.dll* files are located in *opencv-4.5.0-vc14_vc15/build/x64/vc15/bin* and are expected in the PATH 
+    * _opencv_world450d.dll_ and _opencv_world450.dll_ files are located in _opencv-4.5.0-vc14_vc15/build/x64/vc15/bin_ and are expected in the PATH 
 * Dlib version: 19.21
   * It is added to the project as a "Header-only library" - file *FaceBlit/app/src/main/cpp/source.cpp*
+### Android
 
+## Run
+
+### Windows
+
+### Android
   
 ## Notes
 * All CPP sources (except main.cpp) are located in *FaceBlit/app/src/main/cpp*
@@ -26,7 +34,7 @@ _A. Texler, [O. Texler](https://ondrejtexler.github.io/), [M. Kučera](https://w
 * Files with detected landmarks (.txt) and lookup tables (.bytes) for each style are located in *FaceBlit/app/src/main/res/raw*
 
 ## License
-Free to use for research or commercial purposes.
+Algorithm is not patented. The code is released under the public domain - feel free to use it for research or commercial purposes.
 
 ## Citing
 If you find _FaceBlit_ useful for your research or work, please use the following BibTeX entry.
