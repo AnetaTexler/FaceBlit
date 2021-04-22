@@ -54,6 +54,9 @@
     <ClCompile Include="..\app\src\main\opengl\shader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="main_extension.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\app\src\main\cpp\common_utils.h">

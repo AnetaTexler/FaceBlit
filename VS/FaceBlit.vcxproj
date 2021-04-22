@@ -31,6 +31,7 @@
     <ClCompile Include="..\app\src\main\opengl\shader.cpp" />
     <ClCompile Include="..\dlib-19.21\dlib\all\source.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="main_extension.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\app\src\main\cpp\cartesian_coordinate_system_helper.h" />

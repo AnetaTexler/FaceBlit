@@ -3,7 +3,7 @@
 The official implementation of
 
 > **FaceBlit: Instant Real-Time Example-Based Style Transfer to Facial Videos** <br>
-_A. Texler, [O. Texler](https://ondrejtexler.github.io/), [M. Kučera](https://www.linkedin.com/in/kuceram/), [M. Chai](http://www.mlchai.com), and [D. Sýkora](https://dcgi.fel.cvut.cz/home/sykorad/)_ <br>
+_[A. Texler](https://www.linkedin.com/in/aneta-texler/), [O. Texler](https://ondrejtexler.github.io/), [M. Kučera](https://www.linkedin.com/in/kuceram/), [M. Chai](http://www.mlchai.com), and [D. Sýkora](https://dcgi.fel.cvut.cz/home/sykorad/)_ <br>
 [:globe_with_meridians: Project Page](https://ondrejtexler.github.io/faceblit/index.html), 
 [:page_facing_up: Paper](https://dcgi.fel.cvut.cz/home/sykorad/Texler21-I3D.pdf), 
 [:books: BibTeX](https://dcgi.fel.cvut.cz/home/sykorad/Texler21-I3D.bib)
@@ -46,7 +46,7 @@ TODO
 * Files with detected landmarks (.txt) and lookup tables (.bytes) for each style are located in *FaceBlit/app/src/main/res/raw*
 
 ## License
-Algorithm is not patented. The code is released under the public domain - feel free to use it for research or commercial purposes.
+The algorithm is not patented. The code is released under the public domain - feel free to use it for research or commercial purposes.
 
 ## Citing
 If you find _FaceBlit_ useful for your research or work, please use the following BibTeX entry.

@@ -31,6 +31,18 @@ public:
 	}
 
 
+	static std::vector<cv::Point2i> averageMarkers(std::vector<cv::Point2i> A, std::vector<cv::Point2i> B) 
+	{
+		for (size_t i = 0; i < A.size(); i++)
+		{
+			A[i].x = (A[i].x + B[i].x) / 2;
+			A[i].y = (A[i].y + B[i].y) / 2;
+		}
+
+		return A;
+	}
+
+
 	static bool isPointInsideImage(const cv::Point2i& point, const cv::Mat& image)
 	{
 		return !(point.x < 0 || point.y < 0 ||
@@ -140,10 +152,10 @@ public:
 		int width = faceLandmarks[16].x - faceLandmarks[0].x;
 		int higherY = faceLandmarks[0].y < faceLandmarks[16].y ? faceLandmarks[0].y : faceLandmarks[16].y;
 		int height = faceLandmarks[8].y - (higherY - width / 2);
-		rect.x = std::max(faceLandmarks[0].x - (width * 0.25), 0.0);
-		rect.y = std::max((higherY - width / 2) - (height * 0.25), 0.0);
-		rect.width = std::min(width * 1.5, (double)imgSize.width);
-		rect.height = std::min(height * 1.5, (double)imgSize.height);
+		rect.x = std::max(faceLandmarks[0].x - (width * 0.1), 0.0);
+		rect.y = std::max((higherY - width / 2) - (height * 0.2), 0.0);
+		rect.width = std::min(width * 1.2, ((double)imgSize.width - rect.x));
+		rect.height = std::min(height * 1.4, ((double)imgSize.height - rect.y));
 
 		return rect;
 	}

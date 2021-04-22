@@ -788,7 +788,7 @@ cv::Mat getLookUpCube(const cv::Mat& stylePosGuide, const cv::Mat& styleAppGuide
 				//}
 
 				int minError = INT_MAX;
-				const int radius = 100; // radius of searching
+				const int radius = 20; // radius of searching
 				for (int row = MAX(0, seedRow - radius); row < MIN(stylePosGuide.rows, seedRow + radius); row++)
 				{
 					for (int col = MAX(0, seedCol - radius); col < MIN(stylePosGuide.cols, seedCol + radius); col++)
