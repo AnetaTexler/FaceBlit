@@ -32,13 +32,14 @@ artistic style from a single portrait to the target video at interactive rates e
 * Dlib version: 19.21
   * It is added to the project as a "Header-only library" - file *FaceBlit/app/src/main/cpp/source.cpp*
 ### Android
-
+TODO
 ## Run
 
 ### Windows
-
+TODO
 ### Android
-  
+TODO
+
 ## Notes
 * All CPP sources (except main.cpp) are located in *FaceBlit/app/src/main/cpp*
 * Style exemplars (.png) are located in *FaceBlit/app/src/main/res/drawable*
