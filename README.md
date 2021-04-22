@@ -2,13 +2,13 @@
 
 The official implementation of
 
-> FaceBlit: Instant Real-Time Example-Based Style Transfer to Facial Videos
+> **FaceBlit: Instant Real-Time Example-Based Style Transfer to Facial Videos** <br>
+_A. Texler, [O. Texler](https://ondrejtexler.github.io/), [M. Kučera](https://www.linkedin.com/in/kuceram/), [M. Chai](http://www.mlchai.com), and [D. Sýkora](https://dcgi.fel.cvut.cz/home/sykorad/)_ <br>
+[:globe_with_meridians: Project Page](https://ondrejtexler.github.io/faceblit/index.html), 
+[:page_facing_up: Paper](https://dcgi.fel.cvut.cz/home/sykorad/Texler21-I3D.pdf), 
+[:books: BibTeX](https://dcgi.fel.cvut.cz/home/sykorad/Texler21-I3D.bib)
 
-> A. Texler, O. Texler, M. Kučera, M. Chai, and D. Sýkora
 
-> [:globe_with_meridians: Project Page](https://ondrejtexler.github.io/faceblit/index.html), 
-[Paper](https://dcgi.fel.cvut.cz/home/sykorad/Texler21-I3D.pdf), 
-[BibTeX](https://dcgi.fel.cvut.cz/home/sykorad/Texler21-I3D.bib)
 
 ### Build and Run - Desktop (Windows)
 * There is a Visual Studio project in directory *FaceBlit/VS*
