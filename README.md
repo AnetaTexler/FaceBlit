@@ -8,7 +8,7 @@ _A. Texler, [O. Texler](https://ondrejtexler.github.io/), [M. Kučera](https://w
 [:page_facing_up: Paper](https://dcgi.fel.cvut.cz/home/sykorad/Texler21-I3D.pdf), 
 [:books: BibTeX](https://dcgi.fel.cvut.cz/home/sykorad/Texler21-I3D.bib)
 
-
+![Teaser](docs/teaser.png)
 
 ### Build and Run - Desktop (Windows)
 * There is a Visual Studio project in directory *FaceBlit/VS*
