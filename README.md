@@ -8,6 +8,17 @@ _A. Texler, [O. Texler](https://ondrejtexler.github.io/), [M. Kučera](https://w
 [:page_facing_up: Paper](https://dcgi.fel.cvut.cz/home/sykorad/Texler21-I3D.pdf), 
 [:books: BibTeX](https://dcgi.fel.cvut.cz/home/sykorad/Texler21-I3D.bib)
 
+FaceBlit is a system for real-time example-based face video stylization that retains textural details
+of the style in a semantically meaningful manner, i.e., strokes used to depict specific features in the style are
+present at the appropriate locations in the target image. As compared to previous techniques, our system
+preserves the identity of the target subject and runs in real-time without the need for large datasets nor
+lengthy training phase. To achieve this, we modify the existing face stylization pipeline of 
+[Fišer et al. [2017]](https://dcgi.fel.cvut.cz/home/sykorad/facestyle.html) so that it can quickly generate a set 
+of guiding channels that handle identity preservation of the target subject while are still compatible with a faster 
+variant of patch-based synthesis algorithm of [Sýkora et al. [2019]](https://dcgi.fel.cvut.cz/home/sykorad/styleblit.html).
+Thanks to these improvements we demonstrate a first face stylization pipeline that can instantly transfer
+artistic style from a single portrait to the target video at interactive rates even on mobile devices.
+
 ![Teaser](docs/teaser.png)
 
 ## Build
