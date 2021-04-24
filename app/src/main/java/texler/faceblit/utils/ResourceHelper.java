@@ -56,96 +56,81 @@ public class ResourceHelper {
                 id_lm = R.raw.lm_expressive_480x640;
                 id_lut = R.raw.lut_expressive_480x640;
                 break;
-            case "fonz":
-                id_img = R.drawable.style_fonz;
-                id_lm = R.raw.lm_fonz;
-                id_lut = R.raw.lut_fonz;
-                break;
             case "frank":
-                id_img = R.drawable.style_frank;
-                id_lm = R.raw.lm_frank;
-                id_lut = R.raw.lut_frank;
+                id_img = R.drawable.style_frank_480x640;
+                id_lm = R.raw.lm_frank_480x640;
+                id_lut = R.raw.lut_frank_480x640;
                 break;
             case "girl":
-                id_img = R.drawable.style_girl;
-                id_lm = R.raw.lm_girl;
-                id_lut = R.raw.lut_girl;
+                id_img = R.drawable.style_girl_480x640;
+                id_lm = R.raw.lm_girl_480x640;
+                id_lut = R.raw.lut_girl_480x640;
                 break;
             case "het":
-                id_img = R.drawable.style_het;
-                id_lm = R.raw.lm_het;
-                id_lut = R.raw.lut_het;
+                id_img = R.drawable.style_het_480x640;
+                id_lm = R.raw.lm_het_480x640;
+                id_lut = R.raw.lut_het_480x640;
                 break;
             case "illegalbeauty":
-                id_img = R.drawable.style_illegalbeauty;
-                id_lm = R.raw.lm_illegalbeauty;
-                id_lut = R.raw.lut_illegalbeauty;
-                break;
-            case "japan":
-                id_img = R.drawable.style_japan;
-                id_lm = R.raw.lm_japan;
-                id_lut = R.raw.lut_japan;
+                id_img = R.drawable.style_illegalbeauty_480x640;
+                id_lm = R.raw.lm_illegalbeauty_480x640;
+                id_lut = R.raw.lut_illegalbeauty_480x640;
                 break;
             case "ken":
-                id_img = R.drawable.style_ken;
-                id_lm = R.raw.lm_ken;
-                id_lut = R.raw.lut_ken;
+                id_img = R.drawable.style_ken_480x640;
+                id_lm = R.raw.lm_ken_480x640;
+                id_lut = R.raw.lut_ken_480x640;
                 break;
             case "laurinbust":
-                id_img = R.drawable.style_laurinbust;
-                id_lm = R.raw.lm_laurinbust;
-                id_lut = R.raw.lut_laurinbust;
+                id_img = R.drawable.style_laurinbust_480x640;
+                id_lm = R.raw.lm_laurinbust_480x640;
+                id_lut = R.raw.lut_laurinbust_480x640;
                 break;
             case "lincolnbust":
-                id_img = R.drawable.style_lincolnbust;
-                id_lm = R.raw.lm_lincolnbust;
-                id_lut = R.raw.lut_lincolnbust;
+                id_img = R.drawable.style_lincolnbust_480x640;
+                id_lm = R.raw.lm_lincolnbust_480x640;
+                id_lut = R.raw.lut_lincolnbust_480x640;
                 break;
             case "malevich":
-                id_img = R.drawable.style_malevich;
-                id_lm = R.raw.lm_malevich;
-                id_lut = R.raw.lut_malevich;
+                id_img = R.drawable.style_malevich_480x640;
+                id_lm = R.raw.lm_malevich_480x640;
+                id_lut = R.raw.lut_malevich_480x640;
                 break;
             case "oilman":
-                id_img = R.drawable.style_oilman;
-                id_lm = R.raw.lm_oilman;
-                id_lut = R.raw.lut_oilman;
+                id_img = R.drawable.style_oilman_480x640;
+                id_lm = R.raw.lm_oilman_480x640;
+                id_lut = R.raw.lut_oilman_480x640;
                 break;
             case "oldman":
-                id_img = R.drawable.style_oldman;
-                id_lm = R.raw.lm_oldman;
-                id_lut = R.raw.lut_oldman;
+                id_img = R.drawable.style_oldman_480x640;
+                id_lm = R.raw.lm_oldman_480x640;
+                id_lut = R.raw.lut_oldman_480x640;
                 break;
             case "prisma":
-                id_img = R.drawable.style_prisma;
-                id_lm = R.raw.lm_prisma;
-                id_lut = R.raw.lut_prisma;
-                break;
-            case "sketch":
-                id_img = R.drawable.style_sketch;
-                id_lm = R.raw.lm_sketch;
-                id_lut = R.raw.lut_sketch;
+                id_img = R.drawable.style_prisma_480x640;
+                id_lm = R.raw.lm_prisma_480x640;
+                id_lut = R.raw.lut_prisma_480x640;
                 break;
             case "stonebust":
-                id_img = R.drawable.style_stonebust;
-                id_lm = R.raw.lm_stonebust;
-                id_lut = R.raw.lut_stonebust;
+                id_img = R.drawable.style_stonebust_480x640;
+                id_lm = R.raw.lm_stonebust_480x640;
+                id_lut = R.raw.lut_stonebust_480x640;
                 break;
             case "watercolorgirl":
-                id_img = R.drawable.style_watercolorgirl;
-                id_lm = R.raw.lm_watercolorgirl;
-                id_lut = R.raw.lut_watercolorgirl;
+                id_img = R.drawable.style_watercolorgirl_480x640;
+                id_lm = R.raw.lm_watercolorgirl_480x640;
+                id_lut = R.raw.lut_watercolorgirl_480x640;
                 break;
             case "woodenmask":
-                id_img = R.drawable.style_woodenmask;
-                id_lm = R.raw.lm_woodenmask;
-                id_lut = R.raw.lut_woodenmask;
+                id_img = R.drawable.style_woodenmask_480x640;
+                id_lm = R.raw.lm_woodenmask_480x640;
+                id_lut = R.raw.lut_woodenmask_480x640;
                 break;
             default:
                 Log.e("ERROR","style: " + name + " is not listed in id-switch-case");
-                id_img = R.drawable.style_bronzestatue;
-                id_lm = R.raw.lm_bronzestatue;
-                id_lut = R.raw.lut_bronzestatue;
+                id_img = R.drawable.style_bronzestatue_480x640;
+                id_lm = R.raw.lm_bronzestatue_480x640;
+                id_lut = R.raw.lut_bronzestatue_480x640;
                 break;
         }
 
