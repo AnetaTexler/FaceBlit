@@ -19,7 +19,7 @@
 // ############################################################################
 // #							VIDEO STYLIZATION							  #
 // ############################################################################
-bool getStylizedVideo(const std::string& rawPath, const std::string& drawablePath, const std::string& styleName, const std::string& targetName, const bool stylizeBG, const int NNF_patchsize)
+bool getStylizedVideo(const std::string& rawPath, const std::string& drawablePath, const std::string& targetPath, const std::string& targetName, const std::string& styleName, const bool stylizeBG, const int NNF_patchsize)
 {
 
 	std::string styleNameWithoutExtensionAndPrefix = styleName.substr(0, styleName.find_last_of(".")).replace(styleName.find("style_"), 6, "");
@@ -49,7 +49,7 @@ bool getStylizedVideo(const std::string& rawPath, const std::string& drawablePat
 	}
 
 	// Open a video file
-	cv::VideoCapture cap(drawablePath + targetName);
+	cv::VideoCapture cap(targetPath + targetName);
 	if (!cap.isOpened()) {
 		Log_e("FACEBLIT", "Unable to open the input video.");
 		return false;
@@ -179,7 +179,7 @@ bool getStylizedVideo(const std::string& rawPath, const std::string& drawablePat
 // ############################################################################
 // #						SINGLE IMAGE STYLIZATION						  #
 // ############################################################################
-bool getStylizedImage(const std::string& rawPath, const std::string& drawablePath, const std::string& styleName, const std::string& targetName, const bool stylizeBG, const int NNF_patchsize)
+bool getStylizedImage(const std::string& rawPath, const std::string& drawablePath, const std::string& targetPath, const std::string& targetName, const std::string& styleName, const bool stylizeBG, const int NNF_patchsize)
 {
 
 	std::string styleNameWithoutExtensionAndPrefix = styleName.substr(0, styleName.find_last_of(".")).replace(styleName.find("style_"), 6, "");
@@ -199,7 +199,7 @@ bool getStylizedImage(const std::string& rawPath, const std::string& drawablePat
 	cv::Mat lookUpCube = loadLookUpCube(rawPath + "lut_" + styleNameWithoutExtensionAndPrefix + ".bytes");
 
 	// --- DETECT LANDMARKS IN TARGET ----------------
-	cv::Mat targetImg = cv::imread(drawablePath + targetName);
+	cv::Mat targetImg = cv::imread(targetPath + targetName);
 	std::vector<cv::Point2i> targetLandmarks;
 	std::pair<cv::Rect, std::vector<cv::Point2i>> detectionResult; // face rectangle and landmarks
 	DlibDetector dlibDetector("facemark_models\\shape_predictor_68_face_landmarks.dat"); // load model
@@ -244,8 +244,8 @@ bool getStylizedImage(const std::string& rawPath, const std::string& drawablePat
 	cv::imwrite(drawablePath + "style_" + styleNameWithoutExtensionAndPrefix + "_480x640.png", styleImg);
 	for (int i = 0; i < styleLandmarks.size(); i++)
 		styleLandmarks[i] *= 0.625;
-	//CartesianCoordinateSystem::drawLandmarks(styleImg, styleLandmarks);
-	//Window::imgShow("lm", styleImg);
+	CartesianCoordinateSystem::drawLandmarks(styleImg, styleLandmarks);
+	Window::imgShow("lm", styleImg);
 	CartesianCoordinateSystem::savePointsIntoFile(styleLandmarks, rawPath + "lm_" + styleNameWithoutExtensionAndPrefix + "_480x640.txt");
 
 	TimeMeasure t_lut;
@@ -298,23 +298,24 @@ bool getStylizedImage(const std::string& rawPath, const std::string& drawablePat
 
 int main()
 {
-	// *** PARAMETERS TO SET ***********************************************************************************************************
-	const std::string rawPath = "..\\app\\src\\main\\res\\raw\\";			// styles landmarks and lookup tables
-	const std::string drawablePath = "..\\app\\src\\main\\res\\drawable\\";	// style images, target images and videos
+	const std::string rawPath = "..\\app\\src\\main\\res\\raw\\";			// path to styles landmarks and lookup tables
+	const std::string drawablePath = "..\\app\\src\\main\\res\\drawable\\";	// path to style exemplars
 
-	const std::string styleName = "style_watercolorgirl.png";		// name of a style PNG from drawablePath
-	const std::string targetName = "target2.mp4";		// name of a target PNG image or MP4 video with extension
-	const bool stylizeBG = false;						// true - stylized face with appearace is blended into the stylized target without appearance, false - face is blended into the original target
-	const int NNF_patchsize = 3;						// voting patch size (0 for no voting), ideal is 3 or 5; it has to be an ODD NUMBER!!!
+	// *** PARAMETERS TO SET ***********************************************************************************************************
+	const std::string targetPath = "TESTS\\";					// path to target images and videos
+	const std::string targetName = "target2.png";				// name of a target PNG image or MP4 video with extension from drawablePath
+	const std::string styleName = "style_laurinbust.png";		// name of a style PNG with extension from drawablePath
+	const bool stylizeBG = false;								// true - stylized face with appearace is blended into the stylized target without appearance, false - stylized face is blended into the original target
+	const int NNF_patchsize = 3;								// voting patch size (0 for no voting), ideal is 3 or 5; it has to be an ODD NUMBER!!!
 	// *********************************************************************************************************************************
 
 	bool success = false;
 
 	if (targetName.find(".png") != std::string::npos)
-		success = getStylizedImage(rawPath, drawablePath, styleName, targetName, stylizeBG, NNF_patchsize); // Result is saved into "VS/TESTS"
+		success = getStylizedImage(rawPath, drawablePath, targetPath, targetName, styleName, stylizeBG, NNF_patchsize); // Result is saved into "VS/TESTS"
 
 	if (targetName.find(".mp4") != std::string::npos)
-		success = getStylizedVideo(rawPath, drawablePath, styleName, targetName, stylizeBG, NNF_patchsize); // Result is saved into "VS/TESTS"
+		success = getStylizedVideo(rawPath, drawablePath, targetPath, targetName, styleName, stylizeBG, NNF_patchsize); // Result is saved into "VS/TESTS"
 
 	if (!success) {
 		Log_e("FACEBLIT", "Stylization failed.");

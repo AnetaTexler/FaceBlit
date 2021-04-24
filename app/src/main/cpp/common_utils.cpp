@@ -21,6 +21,7 @@ void Log_i(std::string tag, std::string message)
 #endif
 }
 
+#ifdef WINDOWS
 bool makeDir(const std::string& path)
 {
 	if (!std::filesystem::exists(path)) {
@@ -43,3 +44,4 @@ std::string padLeft(std::string target, int totalWidth, char paddingChar)
 
 	return result;
 }
+#endif
