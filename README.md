@@ -24,7 +24,7 @@ artistic style from a single portrait to the target video at interactive rates e
 
 
 ## Introduction
-:warning: DISCLAIMER: This is a research project, not a production-ready application, it can contain bugs!
+:warning: DISCLAIMER: This is a research project, not a production-ready application, it may contain bugs!
 
 This implementation is designed for two platforms - Windows and Android. 
 
@@ -43,11 +43,12 @@ This implementation is designed for two platforms - Windows and Android.
 ### Windows
 * The **OpenCV 4.5.0** is required, you can download the pre-built version directly from [here](https://sourceforge.net/projects/opencvlibrary/files/4.5.0/opencv-4.5.0-vc14_vc15.exe/download) and add `opencv_world450d.dll` and `opencv_world450.dll` files from `opencv-4.5.0-vc14_vc15/build/x64/vc15/bin` into your PATH
 * Open the solution `FaceBlit/VS/FaceBlit.sln` in Visual Studio (tested with VS 2019)
-* Copy your facial video or image into `FaceBlit/app/src/main/res/drawable` path or use existing sample videos and images in that path.
+* Provide a facial video/image or use existing sample videos and images in `FaceBlit/VS/TESTS`.
   * The input video/image has to be in resolution **768x1024 pixels** (width x height)
 * In `main()` function in `FaceBlit/VS/main.cpp`, you can change parameters:
+  * `targetPath` - path to input images and videos (there are some sample inputs in `FaceBlit/VS/TESTS`)
+  * `targetName` - name of a target PNG image or MP4 video with extension (e.g. "target2.mp4")
   * `styleName` - name of a style with extension from the `FaceBlit/app/src/main/res/drawable` path (e.g. "style_het.png")
-  * `targetName` - name of a target PNG image or MP4 video with extension located in the `FaceBlit/app/src/main/res/drawable` path (e.g. "target2.mp4")
   * `stylizeBG` - true/false (true - stylize the whole image/video, does not always deliver pleasing results; false - stylize only face)
   * `NNF_patchsize` - voting patch size (odd number, ideal is 3 or 5); 0 for no voting
 * Finally, run the code and see results in `FaceBlit/VS/TESTS` 
