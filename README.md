@@ -19,31 +19,45 @@ variant of patch-based synthesis algorithm of [Sýkora et al. [2019]](https://dc
 Thanks to these improvements we demonstrate a first face stylization pipeline that can instantly transfer
 artistic style from a single portrait to the target video at interactive rates even on mobile devices.
 
+
 ![Teaser](docs/teaser.png)
 
-## Build
+
+## Introduction
+:warning: DISCLAIMER: This is a research project, not a production-ready application, it can contain bugs!
+
+This implementation is designed for two platforms - Windows and Android. 
+
+* All C++ sources are located in `FaceBlit/app/src/main/cpp`, except for `main.cpp` and `main_extension.cpp` which can be found in `FaceBlit/VS`
+* All Java sources are stored in `FaceBlit/app/src/main/java/texler/faceblit`
+* Style exemplars (.png) are located in `FaceBlit/app/src/main/res/drawable`
+* Files holding detected landmarks (.txt) and lookup tables (.bytes) for each style are located in `FaceBlit/app/src/main/res/raw`
+* The algorithm assumes the style image and input video/image have the same resolution 
+
+
+## Build and Run
+* Clone the repository `git clone https://github.com/AnetaTexler/FaceBlit.git`
+* The repository contains all necessary LIB files and includes for both platforms, except for the OpenCV DLL files for Windows
+* The project uses Dlib 19.21 which is added as one source file (`FaceBlit/app/src/main/cpp/source.cpp`) and will be compiled with other sources; so you don't have to worry about that
 
 ### Windows
-* There is a Visual Studio project in directory *FaceBlit/VS*
-* OpenCV version: 4.5.0
-  * This repository contains necessary .lib files and includes
-  * .dll files need to be downloaded (https://sourceforge.net/projects/opencvlibrary/files/4.5.0/opencv-4.5.0-vc14_vc15.exe/download - pre-built for Windows)
-    * _opencv_world450d.dll_ and _opencv_world450.dll_ files are located in _opencv-4.5.0-vc14_vc15/build/x64/vc15/bin_ and are expected in the PATH 
-* Dlib version: 19.21
-  * It is added to the project as a "Header-only library" - file *FaceBlit/app/src/main/cpp/source.cpp*
-### Android
-TODO
-## Run
+* The **OpenCV 4.5.0** is required, you can download the pre-built version directly from [here](https://sourceforge.net/projects/opencvlibrary/files/4.5.0/opencv-4.5.0-vc14_vc15.exe/download) and add `opencv_world450d.dll` and `opencv_world450.dll` files from `opencv-4.5.0-vc14_vc15/build/x64/vc15/bin` into your PATH
+* Open the solution `FaceBlit/VS/FaceBlit.sln` in Visual Studio (tested with VS 2019)
+* Copy your facial video or image into `FaceBlit/app/src/main/res/drawable` path or use existing sample videos and images in that path.
+  * The input video/image has to be in resolution **768x1024 pixels** (width x height)
+* In `main()` function in `FaceBlit/VS/main.cpp`, you can change parameters:
+  * `styleName` - name of a style with extension from the `FaceBlit/app/src/main/res/drawable` path (e.g. "style_het.png")
+  * `targetName` - name of a target PNG image or MP4 video with extension located in the `FaceBlit/app/src/main/res/drawable` path (e.g. "target2.mp4")
+  * `stylizeBG` - true/false (true - stylize the whole image/video, does not always deliver pleasing results; false - stylize only face)
+  * `NNF_patchsize` - voting patch size (odd number, ideal is 3 or 5); 0 for no voting
+* Finally, run the code and see results in `FaceBlit/VS/TESTS` 
 
-### Windows
-TODO
-### Android
-TODO
 
-## Notes
-* All CPP sources (except main.cpp) are located in *FaceBlit/app/src/main/cpp*
-* Style exemplars (.png) are located in *FaceBlit/app/src/main/res/drawable*
-* Files with detected landmarks (.txt) and lookup tables (.bytes) for each style are located in *FaceBlit/app/src/main/res/raw*
+### Android
+* OpenCV binaries (.so) are already included in the repository (`FaceBlit/app/src/main/jniLibs`)
+* Open the FaceBlit project in Android Studio (tested with **Android Studio 4.1.3** and **gradle 6.5**), install **NDK 21.0.6** via `File > Settings > Appearance & Behavior > System Settings > Android SDK > SDK Tools` and build the project.
+* Install the application on your mobile and face to the camera (works with both front and back). Press the right bottom button to display styles (scroll right to show more) and choose one. Wait a few seconds until the face detector loads, and enjoy the style transfer!
+
 
 ## License
 The algorithm is not patented. The code is released under the public domain - feel free to use it for research or commercial purposes.
