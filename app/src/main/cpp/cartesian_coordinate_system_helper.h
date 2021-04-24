@@ -153,7 +153,7 @@ public:
 		int higherY = faceLandmarks[0].y < faceLandmarks[16].y ? faceLandmarks[0].y : faceLandmarks[16].y;
 		int height = faceLandmarks[8].y - (higherY - width / 2);
 		rect.x = std::max(faceLandmarks[0].x - (width * 0.1), 0.0);
-		rect.y = std::max((higherY - width / 2) - (height * 0.2), 0.0);
+		rect.y = std::max((higherY - width / 2.0) - (height * 0.2), 0.0);
 		rect.width = std::min(width * 1.2, ((double)imgSize.width - rect.x));
 		rect.height = std::min(height * 1.4, ((double)imgSize.height - rect.y));
 
