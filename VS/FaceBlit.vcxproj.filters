@@ -48,15 +48,6 @@
     <ClCompile Include="..\app\src\main\cpp\style_transfer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\app\src\main\opengl\opengl_main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\app\src\main\opengl\shader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="main_extension.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\app\src\main\cpp\common_utils.h">
@@ -93,12 +84,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\app\src\main\cpp\cartesian_coordinate_system_helper.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\app\src\main\opengl\opengl_main.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\app\src\main\opengl\shader.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
