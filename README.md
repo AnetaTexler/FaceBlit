@@ -57,6 +57,7 @@ This implementation is designed for two platforms - Windows and Android.
 ### Android
 * OpenCV binaries (.so) are already included in the repository (`FaceBlit/app/src/main/jniLibs`)
 * Open the FaceBlit project in Android Studio (tested with **Android Studio 4.1.3** and **gradle 6.5**), install **NDK 21.0.6** via `File > Settings > Appearance & Behavior > System Settings > Android SDK > SDK Tools` and build the project.
+* Create a new directory called `models` inside the `Download` directory of your mobile storage and copy there the Dlib model `shape_predictor_68_face_landmarks.dat` located in `FaceBlit/VS/facemark_models`
 * Install the application on your mobile and face to the camera (works with both front and back). Press the right bottom button to display styles (scroll right to show more) and choose one. Wait a few seconds until the face detector loads, and enjoy the style transfer!
 
 
