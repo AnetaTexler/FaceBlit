@@ -41,7 +41,7 @@ This implementation is designed for two platforms - Windows and Android.
 * The project uses Dlib 19.21 which is added as one source file (`FaceBlit/app/src/main/cpp/source.cpp`) and will be compiled with other sources; so you don't have to worry about that
 
 ### Windows
-* The **OpenCV 4.5.0** is required, you can download the pre-built version directly from [here](https://sourceforge.net/projects/opencvlibrary/files/4.5.0/opencv-4.5.0-vc14_vc15.exe/download){:target="_blank"} and add `opencv_world450d.dll` and `opencv_world450.dll` files from `opencv-4.5.0-vc14_vc15/build/x64/vc15/bin` into your PATH
+* The **OpenCV 4.5.0** is required, you can download the pre-built version directly from [here](https://sourceforge.net/projects/opencvlibrary/files/4.5.0/opencv-4.5.0-vc14_vc15.exe/download) and add `opencv_world450d.dll` and `opencv_world450.dll` files from `opencv-4.5.0-vc14_vc15/build/x64/vc15/bin` into your PATH
 * Open the solution `FaceBlit/VS/FaceBlit.sln` in Visual Studio (tested with VS 2019)
 * Provide a facial video/image or use existing sample videos and images in `FaceBlit/VS/TESTS`.
   * The input video/image has to be in resolution **768x1024 pixels** (width x height)
