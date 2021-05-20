@@ -61,6 +61,32 @@ This implementation is designed for two platforms - Windows and Android.
 * Install the application on your mobile and face to the camera (works with both front and back). Press the right bottom button to display styles (scroll right to show more) and choose one. Wait a few seconds until the face detector loads, and enjoy the style transfer!
 
 
+## Adding a new style
+If you want to add a new style exemplar and generate its resources, follow these steps:
+* Prepare a style exemplar - high-quality portrait image of a human facing front in exact resolution **768x1024 pixels** (width x height)
+* In the `main()` function in `FaceBlit/VS/main.cpp`, call function `addNewStyle(inputPath)`, where
+  * `inputPath` - a path to the new style exemplar and its name (e.g. `C:\Users\Aneta\Pictures\styles\monalisa.png`)
+* For the given style exemplar, the `addNewStyle(...)` function 
+  * detects facial landmarks and creates text file with coordinates (e.g. `lm_monalisa.txt`)
+    * the file is saved into `FaceBlit/app/src/main/res/raw` 
+  * generates lookup table (e.g. `lut_monalisa.bytes`),
+    * the file is saved into `FaceBlit/app/src/main/res/raw`  
+  * creates all required copies of the style image for both platforms - original resolution for desktop and lower resolution with a thumbnail for Android (e.g. `style_monalisa.png`, `style_monalisa_480x640.png`, `recycler_view_monalisa.jpg`)
+    * such images are saved into `FaceBlit/app/src/main/res/drawable`
+  * delivers a java code snippet for Android app that has to be copy-pasted into the `FaceBlit/app/src/main/java/texler/faceblit/utils/ResourceHelper.java` inside the switch block. 
+    * Java snippet example:
+      ```java
+      ...
+      case "monalisa":
+          id_img = R.drawable.style_monalisa_480x640;
+          id_lm = R.raw.lm_monalisa_480x640;
+          id_lut = R.raw.lut_monalisa_480x640;
+          break;
+      ...
+      ```
+
+
+
 ## License
 The algorithm is not patented. The code is released under the public domain - feel free to use it for research or commercial purposes.
 

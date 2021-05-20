@@ -11,6 +11,7 @@
 #include <iostream>
 #include <fstream>
 #include <filesystem>
+#include <algorithm>
 #include <opencv2/core.hpp>
 
 
@@ -32,6 +33,10 @@ bool getStylizedVideo(const std::string& rawPath, const std::string& drawablePat
 
 	// --- READ STYLE FILES ---------------------------
 	cv::Mat styleImg = cv::imread(drawablePath + styleName);
+	if (styleImg.empty()) {
+		Log_e("FACEBLIT", "Failed to read style image '" + drawablePath + styleName + "'");
+		return false;
+	}
 	std::ifstream styleLandmarkFile(rawPath + "lm_" + styleNameWithoutExtensionAndPrefix + ".txt");
 	std::string styleLandmarkStr((std::istreambuf_iterator<char>(styleLandmarkFile)), std::istreambuf_iterator<char>());
 	styleLandmarkFile.close();
@@ -192,6 +197,10 @@ bool getStylizedImage(const std::string& rawPath, const std::string& drawablePat
 
 	// --- READ STYLE FILES -----------------
 	cv::Mat styleImg = cv::imread(drawablePath + styleName);
+	if (styleImg.empty()) {
+		Log_e("FACEBLIT", "Failed to read style image '" + drawablePath + styleName + "'");
+		return false;
+	}
 	std::ifstream styleLandmarkFile(rawPath + "lm_" + styleNameWithoutExtensionAndPrefix + ".txt");
 	std::string styleLandmarkStr((std::istreambuf_iterator<char>(styleLandmarkFile)), std::istreambuf_iterator<char>());
 	styleLandmarkFile.close();
@@ -200,6 +209,10 @@ bool getStylizedImage(const std::string& rawPath, const std::string& drawablePat
 
 	// --- DETECT LANDMARKS IN TARGET ----------------
 	cv::Mat targetImg = cv::imread(targetPath + targetName);
+	if (styleImg.empty()) {
+		Log_e("FACEBLIT", "Failed to read target image '" + targetPath + targetName + "'");
+		return false;
+	}
 	std::vector<cv::Point2i> targetLandmarks;
 	std::pair<cv::Rect, std::vector<cv::Point2i>> detectionResult; // face rectangle and landmarks
 	DlibDetector dlibDetector("facemark_models\\shape_predictor_68_face_landmarks.dat"); // load model
@@ -294,9 +307,96 @@ bool getStylizedImage(const std::string& rawPath, const std::string& drawablePat
 	return true;
 }
 
+// ##################################################################################
+// #		Add new style and create its resources (lookup table, landmarks)		#
+// ##################################################################################
+
+bool addNewStyle(const std::string& inputPath, const std::string& rawPath = "..\\app\\src\\main\\res\\raw\\", const std::string& drawablePath = "..\\app\\src\\main\\res\\drawable\\")
+{
+	// Load dlib model for landmark detection
+	std::pair<cv::Rect, std::vector<cv::Point2i>> detectionResult; // face rectangle and landmarks
+	DlibDetector dlibDetector("facemark_models\\shape_predictor_68_face_landmarks.dat"); // load model
+
+	// Get a style name
+	int startIdx = inputPath.find_last_of("\\") != std::string::npos ? inputPath.find_last_of("\\") + 1 : 0;
+	std::string styleNameWithoutExtension = inputPath.substr(startIdx, inputPath.find_last_of(".") - startIdx);
+	styleNameWithoutExtension.erase(std::remove(styleNameWithoutExtension.begin(), styleNameWithoutExtension.end(), '_'), styleNameWithoutExtension.end());
+	styleNameWithoutExtension.erase(std::remove(styleNameWithoutExtension.begin(), styleNameWithoutExtension.end(), '-'), styleNameWithoutExtension.end());
+	styleNameWithoutExtension.erase(std::remove(styleNameWithoutExtension.begin(), styleNameWithoutExtension.end(), ' '), styleNameWithoutExtension.end());
+	std::transform(styleNameWithoutExtension.begin(), styleNameWithoutExtension.end(), styleNameWithoutExtension.begin(), ::tolower);
+
+	// --- Original resolution for the desktop testing ----------------------------------------
+	cv::Mat styleImg = cv::imread(inputPath);
+	if (styleImg.empty()) {
+		Log_e("FACEBLIT", "Failed to read style image '" + inputPath + "'");
+		return false;
+	}
+	if (styleImg.cols != 768 || styleImg.rows != 1024) {
+		Log_e("FACEBLIT", "Wrong resolution! Please provide the image in resolution 768x1024 (width x height).");
+		return false;
+	}
+	cv::imwrite(drawablePath + "style_" + styleNameWithoutExtension + ".png", styleImg);
+	cv::Mat styleGpos = getGradient(styleImg.cols, styleImg.rows, false); // G_pos
+	cv::Mat styleGapp = getAppGuide(styleImg, true); // G_app
+
+	Log_i("FACEBLIT", "Generating lookup table for original resolution...this may take a while.");
+	cv::Mat lookUpCube = getLookUpCube(styleGpos, styleGapp); // 3D table that maps Pos_Red, Pos_Green, App values to coordinates u, v in style
+	saveLookUpCube(lookUpCube, rawPath + "lut_" + styleNameWithoutExtension + ".bytes");
+
+	bool success = dlibDetector.detectFacemarks(styleImg, detectionResult);
+	if (!success) {
+		Log_e("FACEBLIT", "Landmark detection failed.");
+		return false;
+	}
+	std::vector<cv::Point2i> landmarks = detectionResult.second;
+	cv::Mat copyImg = styleImg.clone();
+	CartesianCoordinateSystem::drawLandmarks(copyImg, landmarks);
+	Window::imgShow("landmarks", copyImg);
+	Log_i("FACEBLIT", "Check the precision of drawn landmarks in the window and press any key in that window to continue...");
+	cv::waitKey(0);
+
+	CartesianCoordinateSystem::savePointsIntoFile(landmarks, rawPath + "lm_" + styleNameWithoutExtension + ".txt");
+
+	// --- Lower resolution for the Android app ------------------------------------------------
+	cv::resize(styleImg, styleImg, cv::Size(480, 640));
+	cv::imwrite(drawablePath + "style_" + styleNameWithoutExtension + "_480x640.png", styleImg);
+	styleGpos = getGradient(styleImg.cols, styleImg.rows, false); // G_pos
+	styleGapp = getAppGuide(styleImg, true); // G_app
+	
+	Log_i("FACEBLIT", "Generating lookup table for lower resolution...this may take a while.");
+	lookUpCube = getLookUpCube(styleGpos, styleGapp); // 3D table that maps Pos_Red, Pos_Green, App values to coordinates u, v in style
+	saveLookUpCube(lookUpCube, rawPath + "lut_" + styleNameWithoutExtension + "_480x640.bytes");
+
+	for (int i = 0; i < landmarks.size(); i++)
+		landmarks[i] *= 0.625;
+	//copyImg = styleImg.clone();
+	//CartesianCoordinateSystem::drawLandmarks(copyImg, landmarks);
+	//Window::imgShow("landmarks", copyImg);
+	
+	CartesianCoordinateSystem::savePointsIntoFile(landmarks, rawPath + "lm_" + styleNameWithoutExtension + "_480x640.txt");
+
+	// --- Save thumbnail for Android app -------------------------------------------------------
+	cv::resize(styleImg, styleImg, cv::Size(300, 400));
+	cv::imwrite(drawablePath + "recycler_view_" + styleNameWithoutExtension + ".jpg", styleImg);
+
+	Log_i("FACEBLIT", "--------------------------------------------------------------");
+	Log_i("FACEBLIT", "Double check landmark positions and fix them manually if needed. Style's landmarks have to be as precise as possible!");
+	Log_i("FACEBLIT", "--------------------------------------------------------------");
+	Log_i("FACEBLIT", "Copy the following code into the switch block of ResourceHelper.java file:");
+	std::cout << std::endl;
+	std::cout << "\tcase \"" << styleNameWithoutExtension << "\":" << std::endl;
+	std::cout << "\t\tid_img = R.drawable.style_" << styleNameWithoutExtension << "_480x640;" << std::endl;
+	std::cout << "\t\tid_lm = R.raw.lm_" << styleNameWithoutExtension << "_480x640;" << std::endl;
+	std::cout << "\t\tid_lut = R.raw.lut_" << styleNameWithoutExtension << "_480x640;" << std::endl;
+	std::cout << "\t\tbreak;" << std::endl;
+	std::cout << std::endl;
+
+	return true;
+}
 
 
-int main()
+
+int main(int argc, char* argv[])
 {
 	const std::string rawPath = "..\\app\\src\\main\\res\\raw\\";			// path to styles landmarks and lookup tables
 	const std::string drawablePath = "..\\app\\src\\main\\res\\drawable\\";	// path to style exemplars
@@ -304,12 +404,29 @@ int main()
 	// *** PARAMETERS TO SET ***********************************************************************************************************
 	const std::string targetPath = "TESTS\\";					// path to target images and videos
 	const std::string targetName = "target2.png";				// name of a target PNG image or MP4 video with extension from drawablePath
-	const std::string styleName = "style_laurinbust.png";		// name of a style PNG with extension from drawablePath
+	const std::string styleName = "style_watercolorgirl.png";	// name of a style PNG with extension from drawablePath
 	const bool stylizeBG = false;								// true - stylized face with appearace is blended into the stylized target without appearance, false - stylized face is blended into the original target
 	const int NNF_patchsize = 3;								// voting patch size (0 for no voting), ideal is 3 or 5; it has to be an ODD NUMBER!!!
 	// *********************************************************************************************************************************
 
 	bool success = false;
+
+	
+	// ADD A NEW STYLE (DETECT LANDMARKS & GENERATE LOOKUP TABLE)
+	/*
+	success = addNewStyle("C:\\Users\\Aneta\\Pictures\\styles\\abstract.png");
+	if (!success) {
+		Log_e("FACEBLIT", "Adding of the new style failed.");
+		system("pause");
+		return -1;
+	}
+	else {
+		Log_i("FACEBLIT", "The new style added successfully.");
+		system("pause");
+		return 0;
+	}
+	*/
+
 
 	if (targetName.find(".png") != std::string::npos)
 		success = getStylizedImage(rawPath, drawablePath, targetPath, targetName, styleName, stylizeBG, NNF_patchsize); // Result is saved into "VS/TESTS"
