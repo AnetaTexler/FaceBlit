@@ -68,7 +68,10 @@ If you want to add a new style exemplar and generate its resources, follow these
   * `inputPath` - a path to the new style exemplar and its name (e.g. `C:\Users\Aneta\Pictures\styles\monalisa.png`)
 * For the given style exemplar, the `addNewStyle(...)` function 
   * detects facial landmarks and creates text file with coordinates (e.g. `lm_monalisa.txt`)
-    * the file is saved into `FaceBlit/app/src/main/res/raw` 
+    * the file is saved into `FaceBlit/app/src/main/res/raw`
+    * a window with drawn landmarks will appear, please, check the precision of detected landmarks and fix them manually if needed in order to deliver best style transfer results; coordinates are in the text file in following order:
+
+      ![Landmarks](docs/landmarks.png)
   * generates lookup table (e.g. `lut_monalisa.bytes`),
     * the file is saved into `FaceBlit/app/src/main/res/raw`  
   * creates all required copies of the style image for both platforms - original resolution for desktop and lower resolution with a thumbnail for Android (e.g. `style_monalisa.png`, `style_monalisa_480x640.png`, `recycler_view_monalisa.jpg`)
