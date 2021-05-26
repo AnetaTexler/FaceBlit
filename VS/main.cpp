@@ -351,9 +351,9 @@ bool addNewStyle(const std::string& inputPath, const std::string& rawPath = "..\
 	std::vector<cv::Point2i> landmarks = detectionResult.second;
 	cv::Mat copyImg = styleImg.clone();
 	CartesianCoordinateSystem::drawLandmarks(copyImg, landmarks);
-	Window::imgShow("landmarks", copyImg);
-	Log_i("FACEBLIT", "Check the precision of drawn landmarks in the window and press any key in that window to continue...");
-	cv::waitKey(0);
+	//Window::imgShow("landmarks", copyImg);
+	cv::imwrite("TESTS\\lm_" + styleNameWithoutExtension + ".png", copyImg);
+	//Log_i("FACEBLIT", "Style image with drawn landmarks was saved to 'VS\\TESTS\\lm_" + styleNameWithoutExtension + ".png'.");
 
 	CartesianCoordinateSystem::savePointsIntoFile(landmarks, rawPath + "lm_" + styleNameWithoutExtension + ".txt");
 
@@ -380,9 +380,13 @@ bool addNewStyle(const std::string& inputPath, const std::string& rawPath = "..\
 	cv::imwrite(drawablePath + "recycler_view_" + styleNameWithoutExtension + ".jpg", styleImg);
 
 	Log_i("FACEBLIT", "--------------------------------------------------------------");
-	Log_i("FACEBLIT", "Double check landmark positions and fix them manually if needed. Style's landmarks have to be as precise as possible!");
+	Log_i("FACEBLIT", "Style's landmarks have to be as precise as possible!");
+	Log_i("FACEBLIT", "Double check landmark positions in 'VS\\TESTS\\lm_" + styleNameWithoutExtension + ".png' and if necessary, fix them manually in corresponding TXT files:");
+	Log_i("FACEBLIT", "app\\src\\main\\res\\raw\\lm_" + styleNameWithoutExtension + ".txt");
+	Log_i("FACEBLIT", "app\\src\\main\\res\\raw\\lm_" + styleNameWithoutExtension + "_480x640.txt");
+	Log_i("FACEBLIT", "HINT: open the 'VS\\TESTS\\lm_" + styleNameWithoutExtension + ".png' in MS Paint, where you can see the coordinates of your cursor and check 'docs\\landmarks.png' to see the order of landmarks.");
 	Log_i("FACEBLIT", "--------------------------------------------------------------");
-	Log_i("FACEBLIT", "Copy the following code into the switch block of ResourceHelper.java file:");
+	Log_i("FACEBLIT", "Finally, copy the following code into the switch block of ResourceHelper.java file:");
 	std::cout << std::endl;
 	std::cout << "\tcase \"" << styleNameWithoutExtension << "\":" << std::endl;
 	std::cout << "\t\tid_img = R.drawable.style_" << styleNameWithoutExtension << "_480x640;" << std::endl;
@@ -413,7 +417,7 @@ int main(int argc, char* argv[])
 
 	
 	// ADD A NEW STYLE (DETECT LANDMARKS & GENERATE LOOKUP TABLE)
-	/*
+	///*
 	success = addNewStyle("C:\\Users\\Aneta\\Pictures\\styles\\abstract.png");
 	if (!success) {
 		Log_e("FACEBLIT", "Adding of the new style failed.");
@@ -425,7 +429,7 @@ int main(int argc, char* argv[])
 		system("pause");
 		return 0;
 	}
-	*/
+	//*/
 
 
 	if (targetName.find(".png") != std::string::npos)
