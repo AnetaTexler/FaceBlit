@@ -417,7 +417,7 @@ int main(int argc, char* argv[])
 
 	
 	// ADD A NEW STYLE (DETECT LANDMARKS & GENERATE LOOKUP TABLE)
-	///*
+	/*
 	success = addNewStyle("C:\\Users\\Aneta\\Pictures\\styles\\abstract.png");
 	if (!success) {
 		Log_e("FACEBLIT", "Adding of the new style failed.");
@@ -429,7 +429,7 @@ int main(int argc, char* argv[])
 		system("pause");
 		return 0;
 	}
-	//*/
+	*/
 
 
 	if (targetName.find(".png") != std::string::npos)
