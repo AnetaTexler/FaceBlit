@@ -62,14 +62,14 @@ This implementation is designed for two platforms - Windows and Android.
 
 
 ## Adding a new style
-If you want to add a new style exemplar and generate its resources, follow these steps:
+If you want to add a new style exemplar and generate its resources, build the project  for Windows and follow these steps:
 * Prepare a style exemplar - high-quality portrait image of a human facing front in exact resolution **768x1024 pixels** (width x height)
 * In the `main()` function in `FaceBlit/VS/main.cpp`, call function `addNewStyle(inputPath)`, where
   * `inputPath` - a path to the new style exemplar and its name (e.g. `C:\Users\Aneta\Pictures\styles\monalisa.png`)
 * For the given style exemplar, the `addNewStyle(...)` function 
   * detects facial landmarks and creates text file with coordinates (e.g. `lm_monalisa.txt`)
     * the file is saved into `FaceBlit/app/src/main/res/raw`
-    * a window with drawn landmarks will appear, please, check the precision of detected landmarks and fix them in the text file manually if needed; points have to be very precise in order to deliver best style transfer results; coordinates are in the text file in following order:
+    * the style image with drawn landmarks is saved into `FaceBlit/VS/TESTS`, e.g. `lm_monalisa.png`, please, check the precision of detected landmarks and fix them in corresponding TXT files manually if needed (e.g. `lm_monalisa.txt` and `lm_monalisa_480x640.txt`); :warning: points have to be very precise in order to deliver best style transfer results; coordinates are in the text file in following order:
 
       ![Landmarks](docs/landmarks.png)
   * generates lookup table (e.g. `lut_monalisa.bytes`),
